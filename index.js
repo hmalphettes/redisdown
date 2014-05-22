@@ -22,7 +22,8 @@ inherits(RedisDown, AbstractLevelDOWN);
 
 RedisDown.prototype._open = function (options, callback) {
 	this.db = redisLib.createClient(options.port, options.host, options);
-	callback();
+  var self = this;
+  setImmediate(function () { callback(null, self); });
 };
 
 RedisDown.prototype._get = function (key, options, cb) {

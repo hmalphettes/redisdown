@@ -1,6 +1,6 @@
 # RedisDOWN
 
-Redis backend for [levelup](https://github.com/rvagg/node-levelup)
+Redis backend for [LevelUP](https://github.com/rvagg/node-levelup)
 
 Requirements: redis-2.8 or more recent.
 
