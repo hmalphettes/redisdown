@@ -1,8 +1,8 @@
-var tape   = require('tape')
-var leveljs = require('../')
-var testCommon = require('./testCommon')
+var tape   = require('tape');
+var leveljs = require('../');
+var testCommon = require('./testCommon');
 
-var testBuffer = new Buffer('foo')
+var testBuffer = new Buffer('foo');
 
 /*** compatibility with basic LevelDOWN API ***/
 require('abstract-leveldown/abstract/leveldown-test').args(leveljs, tape, testCommon);

@@ -21,12 +21,12 @@ module.exports = RedisDown;
 inherits(RedisDown, AbstractLevelDOWN);
 
 RedisDown.prototype._open = function (options, callback) {
-	this.redis = redisLib.createClient(options.port, options.host, options);
+	this.db = redisLib.createClient(options.port, options.host, options);
 	callback();
 };
 
 RedisDown.prototype._get = function (key, options, cb) {
-	this.redis.hget(this.location+':h', key, function(e, v) {
+	this.db.hget(this.location+':h', key, function(e, v) {
 		if (e) { return cb(e); }
 		if (!v) { return cb(new Error('NotFound error ' + key)); }
 		var json;
@@ -77,12 +77,12 @@ RedisDown.prototype.__appendDelCmd = function(cmds, key) {
   return cmds;
 };
 RedisDown.prototype.__exec = function(cmds, callback) {
-	this.redis.multi(cmds).exec(callback);
+	this.db.multi(cmds).exec(callback);
 };
 
 RedisDown.prototype._close = function (callback) {
 	try {
-  	this.redis.quit();
+  	this.db.quit();
 	} catch(x) {
 		console.log('Error attempting to quit the redis client', x);
 	}
@@ -115,7 +115,7 @@ RedisDown.prototype.destroy = function (location, callback) {
     location = this.location;
   }
   location = location || this.location;
-  var client = this.redis;
+  var client = this.db;
   client.del(location, function(e) {
     client.quit();
     callback(e);

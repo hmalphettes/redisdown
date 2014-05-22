@@ -124,7 +124,7 @@ Iterator.prototype._fetch = function(callback) {
       }
       this._iterations++;
       var cmd = this._options.reverse ? 'zrevrangebylex' : 'zrangebylex';
-      return this.db.redis.send_command(cmd, rangeArgs, function(e, reply) {
+      return this.db.db.send_command(cmd, rangeArgs, function(e, reply) {
         if (!reply || reply.length === 0) {
           return setImmediate(callback);
         }
@@ -138,7 +138,7 @@ Iterator.prototype._fetch = function(callback) {
     this._skipscore = false;
     this._iterations++;
     var revArgs = [ this.db.location+':z', 0, -1 ];
-    return this.db.redis.send_command('zrevrange', revArgs, function(e, reply) {
+    return this.db.db.send_command('zrevrange', revArgs, function(e, reply) {
       if (!reply || reply.length === 0) {
         return setImmediate(callback);
       }
@@ -149,7 +149,7 @@ Iterator.prototype._fetch = function(callback) {
   // this is the only true iterator
   this._skipscore = true;
   var args = [this.db.location+':z', this._cursor ];//, 'COUNT', 1];
-  this.db.redis.send_command('zscan', args, function(e, reply) {
+  this.db.db.send_command('zscan', args, function(e, reply) {
     if (e || !reply) {
       return callback(e);
     }
@@ -166,7 +166,7 @@ Iterator.prototype._fetch = function(callback) {
 Iterator.prototype._shift = function(callback) {
   var self = this;
   var _key = self._buffered.shift();
-  this.db.redis.hget(this.db.location+':h', _key, function(e, rawvalue) {
+  this.db.db.hget(this.db.location+':h', _key, function(e, rawvalue) {
     var key, value, _value;
     try {
       _value = JSON.parse(rawvalue);
