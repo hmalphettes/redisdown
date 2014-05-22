@@ -1,0 +1,28 @@
+{
+  "name": "redisdown",
+  "description": "redis adapter for levelup",
+  "version": "0.0.1",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com//hmalphettes/redisdown.git"
+  },
+  "main": "index.js",
+  "scripts": {
+    "test": "node ./test/test.js"
+  },
+  "author": "Hugues Malphettes",
+  "license": "MIT",
+  "keywords": [
+    "leveldb",
+    "leveldown",
+    "levelup",
+    "redis"
+  ],
+  "dependencies": {
+    "abstract-leveldown": "*",
+    "redis": "*"
+  },
+  "devDependencies": {
+    "tape": "*"
+  }
+}
