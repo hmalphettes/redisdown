@@ -26,7 +26,7 @@ RedisDown.prototype._open = function (options, callback) {
 };
 
 RedisDown.prototype._get = function (key, options, cb) {
-	this.redis.hget(this.location, key, function(e, v) {
+	this.redis.hget(this.location+':h', key, function(e, v) {
 		if (e) { return cb(e); }
 		if (!v) { return cb(new Error('NotFound error ' + key)); }
 		var json;
@@ -45,43 +45,46 @@ RedisDown.prototype._get = function (key, options, cb) {
 };
 
 RedisDown.prototype._put = function (key, rawvalue, opt, cb) {
-	var value = JSON.stringify(rawvalue);
-	this.redis.hset(this.location, key, value, cb);
+	this.__exec(this.__appendPutCmd([], key, rawvalue), cb);
 };
 
 RedisDown.prototype._del = function (key, opt, cb) {
-	this.redis.hdel(this.location, key, cb);
+	this.__exec(this.__appendDelCmd([], key), cb);
 };
 RedisDown.prototype._batch = function (array, options, callback) {
-	// var multi = this.redis.multi();
-	// for (var i = 0; i < array.length; i++) {
-	// 	var op = array[i];
-	// 	if (op.type === 'put') {
-	// 		multi.hset(this.location, op.key, op.value);
-	// 	} else if (op.type === 'del') {
-	// 		multi.hdel(this.location, op.key);
-	// 	}
-	// }
-	// console.log('multi', multi);
 	var cmds = [];
 	for (var i = 0; i < array.length; i++) {
 		var op = array[i];
 		if (op.type === 'put') {
-			cmds.push(['hset', this.location, op.key, JSON.stringify(op.value) ]);
+      this.__appendPutCmd(cmds, op.key, op.value);
 		} else if (op.type === 'del') {
-			cmds.push(['hdel', this.location, op.key ]);
+      this.__appendDelCmd(cmds, op.key);
 		} else {
 			return callback(new Error('Unknow type of operation ' + JSON.stringify(op)));
 		}
 	}
-	var multi = this.redis.multi(cmds);
-	multi.exec(callback);
+  this.__exec(cmds, callback);
 };
+
+RedisDown.prototype.__appendPutCmd = function(cmds, key, value) {
+	cmds.push(['hset', this.location+':h', key, JSON.stringify(value) ]);
+	cmds.push(['zadd', this.location+':z', 0, key ]);
+  return cmds;
+};
+RedisDown.prototype.__appendDelCmd = function(cmds, key) {
+	cmds.push(['hdel', this.location+':h', key ]);
+	cmds.push(['zrem', this.location+':z', key ]);
+  return cmds;
+};
+RedisDown.prototype.__exec = function(cmds, callback) {
+	this.redis.multi(cmds).exec(callback);
+};
+
 RedisDown.prototype._close = function (callback) {
 	try {
   	this.redis.quit();
 	} catch(x) {
-		console.log('hum', x);
+		console.log('Error attempting to quit the redis client', x);
 	}
 	callback();
 };

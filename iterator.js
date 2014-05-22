@@ -56,13 +56,13 @@ function Iterator(db, options) {
 }
 
 Iterator.prototype._next = function (callback) {
-  if ((this._limit > -1 && this._count >= this._limit) ||
-     (this._cursor === '0' && this._iterations !== 0)) {
-    return setImmediate(function () {
-      callback();
-    });
+  if (this._limit > -1 && this._count >= this._limit) {
+    return setImmediate(callback);
   }
   if (this._buffered.length === 0) {
+    if (this._cursor === '0' && this._iterations !== 0) {
+      return setImmediate(callback);
+    }
     this._fetch(callback);
   } else {
     this._shift(callback);
@@ -71,8 +71,8 @@ Iterator.prototype._next = function (callback) {
 
 Iterator.prototype._fetch = function(callback) {
   var self = this;
-  var args = [this.db.location, this._cursor, 'COUNT', 1];
-  this.db.redis.send_command('hscan', args, function(e, reply) {
+  var args = [this.db.location+':z', this._cursor, 'COUNT', 1];
+  this.db.redis.send_command('zscan', args, function(e, reply) {
     if (e || !reply) {
       return callback(e);
     }
@@ -87,26 +87,28 @@ Iterator.prototype._fetch = function(callback) {
 };
 
 Iterator.prototype._shift = function(callback) {
-  this._count++;
-  var key, value;
-  var _key = this._buffered.shift();
-  var _value;
-  try {
-    _value = JSON.parse(this._buffered.shift());
-  } catch (e) {
-    return callback(e);
-  }
-  console.log('after shift', this._buffered.length);
-  // todo: tell redis tor eturn us buffers and we have nothing to do?
-  if (this._keyAsBuffer) {
-    key = new Buffer(_key);
-  } else {
-    key = _key;
-  }
-  if (this._valueAsBuffer) {
-    value = new Buffer(_value);
-  } else {
-    value = String(_value);
-  }
-  callback(null, key, value);
+  var self = this;
+  var _key = self._buffered.shift();
+  this.db.redis.hget(this.db.location+':h', _key, function(e, rawvalue) {
+    self._count++;
+    var key, value, _value;
+    try {
+      _value = JSON.parse(rawvalue);
+    } catch (e) {
+      return callback(e);
+    }
+    self._buffered.shift(); //skip the score
+    // todo: tell redis to return buffers and we have nothing to do?
+    if (self._keyAsBuffer) {
+      key = new Buffer(_key);
+    } else {
+      key = _key;
+    }
+    if (self._valueAsBuffer) {
+      value = new Buffer(_value);
+    } else {
+      value = String(_value);
+    }
+    callback(null, key, value);
+  });
 };
