@@ -15,4 +15,4 @@ require('abstract-leveldown/abstract/batch-test').all(leveljs, tape, testCommon)
 require('abstract-leveldown/abstract/chained-batch-test').all(leveljs, tape, testCommon);
 require('abstract-leveldown/abstract/close-test').close(leveljs, tape, testCommon);
 require('abstract-leveldown/abstract/iterator-test').all(leveljs, tape, testCommon);
-// require('abstract-leveldown/abstract/ranges-test').all(leveljs, tape, testCommon);
+require('abstract-leveldown/abstract/ranges-test').all(leveljs, tape, testCommon);

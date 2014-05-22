@@ -54,6 +54,42 @@ function Iterator(db, options) {
 
   this._buffered = [];
   this._skipscore = false;
+
+  _processArithmOptions(this._options);
+}
+
+function _processArithmOptions(options) {
+  var reverse = !!options.reverse;
+  if (options.gt !== undefined) {
+    if (!reverse) {
+      options._exclusiveStart = true;
+      options.start = options.gt;
+    } else {
+      options._exclusiveEnd = true;
+      options.end = options.gt;
+    }
+  } else if (options.gte !== undefined) {
+    if (!reverse) {
+      options.start = options.gte;
+    } else {
+      options.end = options.gte;
+    }
+  }
+  if (options.lt !== undefined) {
+    if (!reverse) {
+      options._exclusiveEnd = true;
+      options.end = options.lt;
+    } else {
+      options._exclusiveStart = true;
+      options.start = options.lt;
+    }
+  } else if (options.lte !== undefined) {
+    if (!reverse) {
+      options.end = options.lte;
+    } else {
+      options.start = options.lte;
+    }
+  }
 }
 
 Iterator.prototype._next = function (callback) {
@@ -72,14 +108,14 @@ Iterator.prototype._next = function (callback) {
 
 Iterator.prototype._fetch = function(callback) {
   var self = this;
+  var reverse = !!this._options.reverse;
   if (this._options.start || this._options.end) {
     this._skipscore = false;
     var start = this._options.start !== undefined ? String(this._options.start) : '';
     var end = this._options.end !== undefined ? String(this._options.end) : '';
     if (start !== '' || end !== '') {
-
-      start = start === '' ? (this._options.reverse ? '+' : '-') : '[' + start;
-      end   = end   === '' ? (this._options.reverse ? '-' : '+') : '[' + end;
+      start = start === '' ? (reverse ? '+' : '-') : ((this._options._exclusiveStart ? '(' : '[') + start);
+      end   = end   === '' ? (reverse ? '-' : '+') : ((this._options._exclusiveEnd   ? '(' : '[') + end);
       var rangeArgs = [ this.db.location+':z', start, end ];
       if (this._options.limit > -1) {
         rangeArgs.push('LIMIT');
@@ -97,7 +133,8 @@ Iterator.prototype._fetch = function(callback) {
       });
     }
   }
-  if (this._options.reverse) {
+
+  if (reverse) {
     this._skipscore = false;
     this._iterations++;
     var revArgs = [ this.db.location+':z', 0, -1 ];
