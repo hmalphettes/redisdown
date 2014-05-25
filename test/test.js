@@ -4,6 +4,9 @@ var testCommon = require('./testCommon');
 
 var testBuffer = new Buffer('foo');
 
+/*** redis client management */
+require('./redis-client-test').all(leveljs, tape, testCommon);
+
 /*** compatibility with basic LevelDOWN API ***/
 require('abstract-leveldown/abstract/leveldown-test').args(leveljs, tape, testCommon);
 require('abstract-leveldown/abstract/open-test').open(leveljs, tape, testCommon);

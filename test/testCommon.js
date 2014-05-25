@@ -1,4 +1,5 @@
 var redisLib = require('redis');
+var RedisDown = require('../');
 
 var dbidx = 0
 
@@ -11,10 +12,11 @@ var dbidx = 0
     }
 
   , cleanup = function (callback) {
+      RedisDown.reset();
       var client = redisLib.createClient();
       client.del('_redisdown_test_db_', function(e) {
         client.quit();
-        callback(e);
+        RedisDown.reset(callback);
       });
     }
 

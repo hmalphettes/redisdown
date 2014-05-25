@@ -1,7 +1,5 @@
 'use strict';
 var redisLib = require('redis');
-//require('redis-scanstreams')(redisLib); // Add the ?scan* methods to redis clients
-
 var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN;
 var inherits = require('util').inherits;
 
@@ -16,12 +14,47 @@ function RedisDown(location) {
   }
 	AbstractLevelDOWN.call(this, location);
 }
+
 module.exports = RedisDown;
 // our new prototype inherits from AbstractLevelDOWN
 inherits(RedisDown, AbstractLevelDOWN);
 
+// host:port -> { db: client, locations: [] }
+RedisDown.dbs = {};
+
+/**
+ * @param options: either one of
+ *  - redis-client instance.
+ *  - object with { redis: redis-client}
+ *  - object with { port: portNumber, host: host, ... other options passed to node-redis }
+ *
+ * When a client is created it is reused across instances of
+ * RedisDOWN unless the option `ownClient` is truthy.
+ * For a client to be reused, it requires the same port, host and options.
+ */
 RedisDown.prototype._open = function (options, callback) {
-	this.db = redisLib.createClient(options.port, options.host, options);
+  if (typeof options.hget === 'function') {
+    this.db = options.hget;
+    this.quitDbOnClose = false;
+  } else if (options.redis && typeof options.redis.hget === 'function') {
+    this.db = options.redis;
+    this.quitDbOnClose = false;
+  } else if (!options.ownClient) {
+    this.redisId = _makeRedisId(options);
+    var dbDesc = RedisDown.dbs[this.redisId];
+    if (dbDesc) {
+      this.db = dbDesc.db;
+      dbDesc.locations.push(this.location);
+    }
+  } else {
+    this.quitDbOnClose = true;
+  }
+  if (!this.db) {
+    this.db = redisLib.createClient(options.port, options.host, options);
+    if (!options.ownClient) {
+      RedisDown.dbs[this.redisId] = { db: this.db, locations: [ this.location ] };
+    }
+  }
   var self = this;
   setImmediate(function () { callback(null, self); });
 };
@@ -82,12 +115,30 @@ RedisDown.prototype.__exec = function(cmds, callback) {
 };
 
 RedisDown.prototype._close = function (callback) {
+  if (this.quitDbOnClose === false) {
+    return setImmediate(callback);
+  }
+  if (this.quitDbOnClose !== true) {
+    // close the client only if it is not used by others:
+    var dbDesc = RedisDown.dbs[this.redisId];
+    if (dbDesc) {
+      var location = this.location;
+      dbDesc.locations = dbDesc.locations.filter(function(loc) {
+        return loc !== location;
+      });
+      if (dbDesc.locations.length !== 0) {
+        // a still used by another RedisDOWN
+        return setImmediate(callback);
+      }
+      delete RedisDown.dbs[this.redisId];
+    }
+  }
 	try {
   	this.db.quit();
 	} catch(x) {
 		console.log('Error attempting to quit the redis client', x);
 	}
-	callback();
+	setImmediate(callback);
 };
 
 RedisDown.prototype.iterator = function (options) {
@@ -101,7 +152,7 @@ RedisDown.prototype.iterator = function (options) {
  * Callbacks
  */
 RedisDown.destroy = function (location, options, callback) {
-  var client = redisLib.createClient(options);
+  var client = redisLib.createClient(options.post, options.host, options);
   client.del(location, function(e) {
     client.quit();
     callback(e);
@@ -116,10 +167,41 @@ RedisDown.prototype.destroy = function (location, callback) {
     location = this.location;
   }
   location = location || this.location;
-  var client = this.db;
-  client.del(location, function(e) {
-    client.quit();
-    callback(e);
+  var self = this;
+  this.db.del(location, function(e) {
+    self.close(callback);
   });
 };
 
+/**
+ * Internal:
+ * create an identifier for a redis client from the options passed to _open.
+ * when the identifier is identical, it is safe to reuse the same client.
+ */
+function _makeRedisId(options) {
+  var redisIdOptions = [ 'host', 'port',
+    'parser', 'return_buffers', 'detect_buffers', 'socket_nodelay', 'no_ready_check',
+    'enable_offline_queue', 'retry_max_delay', 'connect_timeout', 'max_attempts' ];
+  var redisOptions = {};
+  redisIdOptions.forEach(function(opt) {
+    if (options[opt] !== undefined && options[opt] !== null) {
+      redisOptions[opt] = options[opt];
+    }
+  });
+  return JSON.stringify(redisOptions);
+}
+
+RedisDown.reset = function(callback) {
+  for (var k in RedisDown.dbs) {
+    if (RedisDown.dbs.hasOwnProperty(k)) {
+      try {
+        var db = RedisDown.dbs[k].db;
+        db.quit();
+      } catch(x) {
+      }
+    }
+  }
+  if (callback) {
+    return callback();
+  }
+}
