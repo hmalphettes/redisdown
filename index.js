@@ -152,6 +152,10 @@ RedisDown.prototype.iterator = function (options) {
  * Callbacks
  */
 RedisDown.destroy = function (location, options, callback) {
+  if (typeof options === 'function') {
+    callback = options;
+    options = {};
+  }
   var client = redisLib.createClient(options.post, options.host, options);
   client.del(location, function(e) {
     client.quit();
