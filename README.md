@@ -49,6 +49,8 @@ If you need something different, let me know.
 # HELP Wanted
 Ranges and Reverse iterations are making a single query to redis.
 They should be refactored to fetch the data one little batch at a time.
+
 Let me know if you have figured out what the redis query should look like:
+https://github.com/hmalphettes/redisdown/issues/3
 
 When results are buffers we should be able to simply pass them from redis to the consumer without traveling though a String.
