@@ -34,6 +34,11 @@ options is a hash that is passed to the redis library to create a redis client:
 ### redisdown.destroy(location, [options, ]callback)
 <code>destroy()</code> is used to completely delete all data in redis related to the location.
 
+# Pouchdb integrations tests: all 3605 of them
+---------------------------------------------------------
+`npm test-pouchdb-redis`
+The script will install the extra required dependencies.
+It works for me.
 
 # LICENSE
 redisdown is freely distributable under the term of the MIT License.
@@ -41,8 +46,9 @@ Copyright: Sutoiku Inc 2014.
 
 If you need something different, let me know.
 
-# TODO
+# HELP Wanted
 Ranges and Reverse iterations are making a single query to redis.
 They should be refactored to fetch the data one little batch at a time.
+Let me know if you have figured out what the redis query should look like:
 
 When results are buffers we should be able to simply pass them from redis to the consumer without traveling though a String.

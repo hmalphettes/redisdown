@@ -1,14 +1,16 @@
 {
   "name": "redisdown",
   "description": "redis adapter for levelup",
-  "version": "0.0.3",
+  "version": "0.0.4",
   "repository": {
     "type": "git",
     "url": "https://github.com//hmalphettes/redisdown.git"
   },
   "main": "index.js",
   "scripts": {
-    "test": "node ./test/test.js"
+    "test": "node ./test/test.js",
+    "test-pouchdb": "./test/pouchdb/test-pouchdb.sh",
+    "test-pouchdb-redis": "./test/pouchdb/test-pouchdb-redis.sh"
   },
   "author": "Hugues Malphettes",
   "license": "MIT",

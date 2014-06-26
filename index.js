@@ -115,6 +115,7 @@ RedisDown.prototype.__exec = function(cmds, callback) {
 };
 
 RedisDown.prototype._close = function (callback) {
+  this.closed = true;
   if (this.quitDbOnClose === false) {
     return setImmediate(callback);
   }

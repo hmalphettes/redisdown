@@ -151,7 +151,7 @@ Iterator.prototype._fetch = function(callback) {
   var args = [this.db.location+':z', this._cursor ];//, 'COUNT', 1];
   this.db.db.send_command('zscan', args, function(e, reply) {
     if (e || !reply) {
-      return callback(e);
+      return callback(self.db.closed ? null : e);
     }
     self._iterations++;
     self._cursor = reply[0];
@@ -166,11 +166,13 @@ Iterator.prototype._fetch = function(callback) {
 Iterator.prototype._shift = function(callback) {
   var self = this;
   var _key = self._buffered.shift();
-  this.db.db.hget(this.db.location+':h', _key, function(e, rawvalue) {
+  this.db.db.hget(this.db.location+':h', _key, function(err, rawvalue) {
+    if (err) { return callback(self.db.closed ? null : err); }
     var key, value, _value;
     try {
       _value = JSON.parse(rawvalue);
     } catch (e) {
+      console.trace(e, _key, 'unable to parse ', rawvalue);
       return callback(e);
     }
     if (self._skipscore) {
