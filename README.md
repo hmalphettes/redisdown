@@ -18,7 +18,7 @@ Uses a sorted-set to order the keys and a hash to store the values.
 * `location+':z'` is the set where the keys are sorted.
 
 --------------------------------------------------------
-<a name="leveldown_open"></a>
+<a name="redisdown_open"></a>
 ### redisdown#open([options, ]callback)
 <code>open()</code> is an instance method on an existing database object.
 
@@ -30,9 +30,16 @@ options is a hash that is passed to the redis library to create a redis client:
 
 
 -----------------------------------
-### redisdown.destroy(location, callback)
+<a name="redisdown_destroy"></a>
+### redisdown.destroy(location, [options, ]callback)
 <code>destroy()</code> is used to completely delete all data in redis related to the location.
 
+
+# LICENSE
+redisdown is freely distributable under the term of the MIT License.
+Copyright: Sutoiku Inc 2014.
+
+If you need something different, let me know.
 
 # TODO
 Ranges and Reverse iterations are making a single query to redis.
