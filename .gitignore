@@ -21,4 +21,4 @@ results
 npm-debug.log
 
 test_migration_remote
-pouch__all_dbs
+pouch__all_dbs__
