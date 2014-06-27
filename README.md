@@ -38,7 +38,7 @@ options is a hash that is passed to the redis library to create a redis client:
 
 # Pouchdb integrations tests: all 3605 of them
 ---------------------------------------------------------
-`npm test-pouchdb-redis`
+`npm run-script test-pouchdb-redis`
 The script will install the extra required dependencies.
 It works for me.
 
@@ -49,10 +49,4 @@ Copyright: Sutoiku Inc 2014.
 If you need something different, let me know.
 
 # HELP Wanted
-Ranges and Reverse iterations are making a single query to redis.
-They should be refactored to fetch the data one little batch at a time.
-
-Let me know if you have figured out what the redis query should look like:
-https://github.com/hmalphettes/redisdown/issues/3
-
 When results are buffers we should be able to simply pass them from redis to the consumer without traveling though a String.
