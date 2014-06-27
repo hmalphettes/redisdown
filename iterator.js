@@ -49,13 +49,18 @@ function Iterator(db, options) {
     this._valueAsBuffer = true;
   }
 
-  this._cursor = '0';
+  this._cursor = '0'; // zscan
   this._iterations = 0;
+  this._offset = 0;
+  this._sizeKeys   = this._options.sizeKeys || db.batchSizeKeys || 1024;
+  this._sizeValues = this._options.sizeValues || db.batchSizeValues || 128;
 
   this._buffered = [];
   this._skipscore = false;
 
   _processArithmOptions(this._options);
+
+  this._batchNb = 0;
 }
 
 function _processArithmOptions(options) {
@@ -107,8 +112,8 @@ Iterator.prototype._next = function (callback) {
 };
 
 Iterator.prototype._fetch = function(callback) {
-  var self = this;
   var reverse = !!this._options.reverse;
+  this._reverse = reverse;
   if (this._options.start || this._options.end) {
     this._skipscore = false;
     var start = this._options.start !== undefined ? String(this._options.start) : '';
@@ -116,24 +121,15 @@ Iterator.prototype._fetch = function(callback) {
     if (start !== '' || end !== '') {
       start = start === '' ? (reverse ? '+' : '-') : ((this._options._exclusiveStart ? '(' : '[') + start);
       end   = end   === '' ? (reverse ? '-' : '+') : ((this._options._exclusiveEnd   ? '(' : '[') + end);
-      var rangeArgs = [ this.db.location+':z', start, end ];
-      if (this._options.limit > -1) {
-        rangeArgs.push('LIMIT');
-        rangeArgs.push(0);
-        rangeArgs.push(this._options.limit);
-      }
-      this._iterations++;
-      var cmd = this._options.reverse ? 'zrevrangebylex' : 'zrangebylex';
-      return this.db.db.send_command(cmd, rangeArgs, function(e, reply) {
-        if (!reply || reply.length === 0) {
-          return setImmediate(callback);
-        }
-        self._buffered = reply;
-        self._shift(callback);
-      });
+      this._start = start;
+      this._end = end;
+      this._cursor = '1';
+      this._fetch = this._fetchRangeByBatch;
+      return this._fetchRangeByBatch(callback);
     }
   }
 
+  var self = this;
   if (reverse) {
     this._skipscore = false;
     this._iterations++;
@@ -161,6 +157,36 @@ Iterator.prototype._fetch = function(callback) {
     self._buffered = reply[1];
     self._shift(callback);
   });
+};
+
+Iterator.prototype._fetchRangeByBatch = function(callback) {
+  var rangeArgs = [ this.db.location+':z', this._start, this._end ];
+  rangeArgs.push('LIMIT');
+  rangeArgs.push(this._offset);
+  var size;
+  if (this._options.limit > -1) {
+    var remain = this._options.limit - this._offset;
+    if (remain <= 0) {
+      return callback();
+    }
+    size = remain <= this._sizeKeys ? remain : this._sizeKeys;
+  } else {
+    size = this._sizeKeys;
+  }
+  this._offset += size;
+  rangeArgs.push(size);
+  this._iterations++;
+  var cmd = this._options.reverse ? 'zrevrangebylex' : 'zrangebylex';
+  var self = this;
+  this._batchNb++;
+  return this.db.db.send_command(cmd, rangeArgs, function(e, reply) {
+    if (!reply || reply.length === 0) {
+      return setImmediate(callback);
+    }
+    self._buffered = reply;
+    self._shift(callback);
+  });
+
 };
 
 Iterator.prototype._shift = function(callback) {

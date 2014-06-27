@@ -19,3 +19,6 @@ require('abstract-leveldown/abstract/chained-batch-test').all(leveljs, tape, tes
 require('abstract-leveldown/abstract/close-test').close(leveljs, tape, testCommon);
 require('abstract-leveldown/abstract/iterator-test').all(leveljs, tape, testCommon);
 require('abstract-leveldown/abstract/ranges-test').all(leveljs, tape, testCommon);
+
+/*** Test batches */
+require('abstract-leveldown/abstract/iterator-test').all(leveljs, tape, testCommon.smallBatches);

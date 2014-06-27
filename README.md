@@ -24,6 +24,8 @@ Uses a sorted-set to order the keys and a hash to store the values.
 
 options is a hash that is passed to the redis library to create a redis client:
 
+* `batchSizeKeys` number of values to fetch at once during an iteration. Defaults to 1024.
+* `batchSizeValues` number of values to fetch at once during an iteration. Defaults to 128.
 * `port` redis port
 * `host` redis host
 * Other options: https://github.com/mranney/node_redis#rediscreateclientport-host-options
