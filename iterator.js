@@ -49,18 +49,17 @@ function Iterator(db, options) {
     this._valueAsBuffer = true;
   }
 
-  this._cursor = '0'; // zscan
   this._iterations = 0;
   this._offset = 0;
   this._sizeKeys   = this._options.sizeKeys || db.batchSizeKeys || 1024;
   this._sizeValues = this._options.sizeValues || db.batchSizeValues || 128;
 
-  this._buffered = [];
-  this._skipscore = false;
+  this._keyPointer   = 0;
+  this._bufferedKeys = [];
+  this._keys         = this._bufferedKeys;
 
   _processArithmOptions(this._options);
-
-  this._batchNb = 0;
+  this.prepareQuery();
 }
 
 function _processArithmOptions(options) {
@@ -97,69 +96,40 @@ function _processArithmOptions(options) {
   }
 }
 
+Iterator.prototype.prepareQuery = function() {
+  var reverse = !!this._options.reverse;
+  this._reverse = reverse;
+  if (this._options.start || this._options.end) {
+    var start = this._options.start !== undefined ? String(this._options.start) : '';
+    var end = this._options.end !== undefined ? String(this._options.end) : '';
+    if (start !== '' || end !== '') {
+      this._start = start === '' ? (reverse ? '+' : '-') : ((this._options._exclusiveStart ? '(' : '[') + start);
+      this._end   = end   === '' ? (reverse ? '-' : '+') : ((this._options._exclusiveEnd   ? '(' : '[') + end);
+      return;
+    }
+  }
+  this._start = reverse ? '+' : '-';
+  this._end   = reverse ? '-' : '+';
+};
+
 Iterator.prototype._next = function (callback) {
   if (this._limit > -1 && this._count >= this._limit) {
     return setImmediate(callback);
   }
-  if (this._buffered.length === 0) {
-    if (this._cursor === '0' && this._iterations !== 0) {
-      return setImmediate(callback);
-    }
-    this._fetch(callback);
-  } else {
+  if (this._valPointer && this._valPointer < this._keys.length) {
     this._shift(callback);
+  } else if (!this._bufferedKeys.length || this._keyPointer >= this._bufferedKeys.length) {
+    this._fetchKeys(callback);
+  } else {
+    this._fetchValues(callback);
   }
 };
 
-Iterator.prototype._fetch = function(callback) {
-  var reverse = !!this._options.reverse;
-  this._reverse = reverse;
-  if (this._options.start || this._options.end) {
-    this._skipscore = false;
-    var start = this._options.start !== undefined ? String(this._options.start) : '';
-    var end = this._options.end !== undefined ? String(this._options.end) : '';
-    if (start !== '' || end !== '') {
-      start = start === '' ? (reverse ? '+' : '-') : ((this._options._exclusiveStart ? '(' : '[') + start);
-      end   = end   === '' ? (reverse ? '-' : '+') : ((this._options._exclusiveEnd   ? '(' : '[') + end);
-      this._start = start;
-      this._end = end;
-      this._cursor = '1';
-      this._fetch = this._fetchRangeByBatch;
-      return this._fetchRangeByBatch(callback);
-    }
-  }
-
-  var self = this;
-  if (reverse) {
-    this._skipscore = false;
-    this._iterations++;
-    var revArgs = [ this.db.location+':z', 0, -1 ];
-    return this.db.db.send_command('zrevrange', revArgs, function(e, reply) {
-      if (!reply || reply.length === 0) {
-        return setImmediate(callback);
-      }
-      self._buffered = reply;
-      self._shift(callback);
-    });
-  }
-  // this is the only true iterator
-  this._skipscore = true;
-  var args = [this.db.location+':z', this._cursor ];//, 'COUNT', 1];
-  this.db.db.send_command('zscan', args, function(e, reply) {
-    if (e || !reply) {
-      return callback(self.db.closed ? null : e);
-    }
-    self._iterations++;
-    self._cursor = reply[0];
-    if (reply[1].length === 0 && !self._ended) {
-      return self._next(callback);
-    }
-    self._buffered = reply[1];
-    self._shift(callback);
-  });
-};
-
-Iterator.prototype._fetchRangeByBatch = function(callback) {
+/**
+ * Gets a batch of keys
+ */
+Iterator.prototype._fetchKeys = function(callback) {
+  if (this.db.closed) { return callback(); }
   var rangeArgs = [ this.db.location+':z', this._start, this._end ];
   rangeArgs.push('LIMIT');
   rangeArgs.push(this._offset);
@@ -178,44 +148,60 @@ Iterator.prototype._fetchRangeByBatch = function(callback) {
   this._iterations++;
   var cmd = this._options.reverse ? 'zrevrangebylex' : 'zrangebylex';
   var self = this;
-  this._batchNb++;
   return this.db.db.send_command(cmd, rangeArgs, function(e, reply) {
     if (!reply || reply.length === 0) {
       return setImmediate(callback);
     }
-    self._buffered = reply;
-    self._shift(callback);
+    self._keyPointer = 0;
+    self._bufferedKeys = reply;
+    self._fetchValues(callback);
   });
 
 };
 
-Iterator.prototype._shift = function(callback) {
+Iterator.prototype._fetchValues = function(callback) {
+  if (this.db.closed) { return callback(); }
   var self = this;
-  var _key = self._buffered.shift();
-  this.db.db.hget(this.db.location+':h', _key, function(err, rawvalue) {
+  if (this._keyPointer === 0 && this._sizeValues >= this._bufferedKeys.length) {
+    this._keys = this._bufferedKeys;
+  } else {
+    this._keys = this._bufferedKeys.slice(this._keyPointer, this._keyPointer + this._sizeValues);
+  }
+  this._keyPointer += this._sizeValues;
+  this.db.db.hmget(this.db.location+':h', this._keys, function(err, values) {
     if (err) { return callback(self.db.closed ? null : err); }
-    var key, value, _value;
-    try {
-      _value = JSON.parse(rawvalue);
-    } catch (e) {
-      console.trace(e, _key, 'unable to parse ', rawvalue);
-      return callback(e);
+    self._values = values;
+    if (!values.length) {
+      return callback();
     }
-    if (self._skipscore) {
-      self._buffered.shift(); //skip the score
-    }
-    // todo: tell redis to return buffers and we have nothing to do?
-    if (self._keyAsBuffer) {
-      key = new Buffer(_key);
-    } else {
-      key = _key;
-    }
-    if (self._valueAsBuffer) {
-      value = new Buffer(_value);
-    } else {
-      value = String(_value);
-    }
-    self._count++;
-    callback(null, key, value);
+    self._valPointer = 0;
+    self._shift(callback);
   });
+};
+
+/**
+ * Gets the next key/value from the buffered keys and values.
+ */
+Iterator.prototype._shift = function(callback) {
+    // todo: tell redis to return buffers and we have less things to do?
+  var key, value;
+  var i = this._valPointer;
+  this._valPointer++;
+  if (this._keyAsBuffer) {
+    key = new Buffer(this._keys[i]);
+  } else {
+    key = this._keys[i];
+  }
+  try {
+    value = JSON.parse(this._values[i]);
+  } catch(x) {
+    console.trace('unexpected', this._values[i], x);
+  }
+  if (this._valueAsBuffer) {
+    value = new Buffer(value);
+  } else {
+    value = String(value);
+  }
+  this._count++;
+  callback(null, key, value);
 };
