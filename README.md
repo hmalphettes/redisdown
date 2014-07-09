@@ -24,12 +24,11 @@ Uses a sorted-set to order the keys and a hash to store the values.
 
 options is a hash that is passed to the redis library to create a redis client:
 
-* `batchSizeKeys` number of values to fetch at once during an iteration. Defaults to 1024.
+* `batchSizeKeys` number of keys to fetch at once during an iteration. Defaults to 1024.
 * `batchSizeValues` number of values to fetch at once during an iteration. Defaults to 128.
 * `port` redis port
 * `host` redis host
 * Other options: https://github.com/mranney/node_redis#rediscreateclientport-host-options
-
 
 -----------------------------------
 <a name="redisdown_destroy"></a>
@@ -49,4 +48,6 @@ Copyright: Sutoiku Inc 2014.
 If you need something different, let me know.
 
 # HELP Wanted
-When results are buffers we should be able to simply pass them from redis to the consumer without traveling though a String.
+- When results are buffers we should be able to simply pass them from redis to the consumer without traveling though a String.
+- Use a lua script to load the value and the key at once?
+- Collation: do we need to worry about this?

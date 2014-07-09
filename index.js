@@ -64,6 +64,13 @@ RedisDown.prototype._open = function (options, callback) {
     }
   }
   var self = this;
+
+  if (options && options.destroyOnOpen) {
+    return this.destroy(false, function() {
+      setImmediate(function () { callback(null, self); });
+    });
+  }
+
   setImmediate(function () { callback(null, self); });
 };
 
@@ -172,17 +179,20 @@ RedisDown.destroy = function (location, options, callback) {
   });
 };
 /**
- * @param location: optional parameter, by default the location of the current db
+ * @param doClose: optional parameter, by default true to close the client
  */
-RedisDown.prototype.destroy = function (location, callback) {
-  if (!callback && typeof location === 'function') {
-    callback = location;
-    location = this.location;
+RedisDown.prototype.destroy = function (doClose, callback) {
+  if (!callback && typeof doClose === 'function') {
+    callback = doClose;
+    doClose = true;
   }
-  location = location || this.location;
   var self = this;
-  this.db.del(location+':h', location+':z', function(e) {
-    self.close(callback);
+  this.db.del(this.location+':h', this.location+':z', function(e) {
+    if (doClose) {
+      self.close(callback);
+    } else {
+      callback();
+    }
   });
 };
 
