@@ -8,6 +8,33 @@ Uses a sorted-set to order the keys and a hash to store the values.
 
 [Abstract-LevelDOWN](https://github.com/rvagg/abstract-leveldown) testsuite is green.
 
+# Example
+
+Copied and pasted from the levelup documentation.
+Added the db option when creating the db to use redisdown.
+
+```
+var levelup = require('levelup')
+var redisdown = require('redisdown')
+
+// 1) Create our database, supply location and options.
+//    This will create or open the underlying LevelDB store.
+var db = levelup('mydb', { db: redisdown })
+
+// 2) put a key & value
+db.put('name', 'LevelUP', function (err) {
+  if (err) return console.log('Ooops!', err) // some kind of I/O error
+
+  // 3) fetch by key
+  db.get('name', function (err, value) {
+    if (err) return console.log('Ooops!', err) // likely the key was not found
+
+    // ta da!
+    console.log('name=' + value)
+  })
+})
+```
+
 # API
 --------------------------------------------------------
 <a name="ctor"></a>
