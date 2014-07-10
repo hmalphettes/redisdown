@@ -19,7 +19,7 @@ var redisdown = require('redisdown')
 
 // 1) Create our database, supply location and options.
 //    This will create or open the underlying LevelDB store.
-var db = levelup('mydb', { db: redisdown })
+var db = levelup('mydb', { db: redisdown, host: 'localhost', port: 6379 })
 
 // 2) put a key & value
 db.put('name', 'LevelUP', function (err) {
