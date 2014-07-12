@@ -21,6 +21,9 @@ var redisdown = require('redisdown')
 //    This will create or open the underlying LevelDB store.
 var db = levelup('mydb', { db: redisdown, host: 'localhost', port: 6379 })
 
+// if you already have a redis client
+//var db = levelup('mydb', { db: redisdown, redis: redisClient })
+
 // 2) put a key & value
 db.put('name', 'LevelUP', function (err) {
   if (err) return console.log('Ooops!', err) // some kind of I/O error
@@ -53,8 +56,9 @@ options is a hash that is passed to the redis library to create a redis client:
 
 * `batchSizeKeys` number of keys to fetch at once during an iteration. Defaults to 1024.
 * `batchSizeValues` number of values to fetch at once during an iteration. Defaults to 128.
-* `port` redis port
-* `host` redis host
+* `port` redis port. Defaults to '127.0.0.1'
+* `host` redis host. Defaults to 6379
+* `redis` already configured redis client. redisDown will not open or close it. host and port are ignored.
 * Other options: https://github.com/mranney/node_redis#rediscreateclientport-host-options
 
 -----------------------------------
