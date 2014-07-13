@@ -4,6 +4,8 @@ var AbstractIterator = require('abstract-leveldown/abstract-iterator');
 inherits(Iterator, AbstractIterator);
 module.exports = Iterator;
 
+var scriptsloader = require('./scriptsloader');
+
 function goodOptions(opts, name) {
   if (!(name in opts)) {
     return;
@@ -31,35 +33,27 @@ var names = [
 function Iterator(db, options) {
   AbstractIterator.call(this, db);
   options = options || {};
-  this._order = !options.reverse;
-  this._options = options;
-	for (var i = 0; i < options.length; i++) {
+  for (var i = 0; i < options.length; i++) {
 		goodOptions(options, i);
 	}
   this._count = 0;
   this._limit = options.limit || -1;
-  if ('keyAsBuffer' in options) {
-    this._keyAsBuffer = options.keyAsBuffer;
-  } else {
-    this._keyAsBuffer = true;
-  }
-  if ('valueAsBuffer' in options) {
-    this._valueAsBuffer = options.valueAsBuffer;
-  } else {
-    this._valueAsBuffer = true;
-  }
+
+  this._keyAsBuffer = 'keyAsBuffer' in options ? !!options.keyAsBuffer : false;
+  this._valueAsBuffer = 'valueAsBuffer' in options ? !!options.valueAsBuffer : false;
+  this._keys = 'keys' in options ? !!options.keys : true;
+  this._values = 'values' in options ? !!options.values : true;
 
   this._iterations = 0;
   this._offset = 0;
-  this._sizeKeys   = this._options.sizeKeys || db.batchSizeKeys || 1024;
-  this._sizeValues = this._options.sizeValues || db.batchSizeValues || 128;
+  this._highWaterMark = options.highWaterMark || db.highWaterMark || 256;
 
-  this._keyPointer   = 0;
-  this._bufferedKeys = [];
-  this._keys         = this._bufferedKeys;
+  this._pointer  = 0;
+  this._buffered = [];
 
-  _processArithmOptions(this._options);
-  this.prepareQuery();
+  _processArithmOptions(options);
+
+  this.prepareQuery(options);
 }
 
 function _processArithmOptions(options) {
@@ -96,15 +90,36 @@ function _processArithmOptions(options) {
   }
 }
 
-Iterator.prototype.prepareQuery = function() {
-  var reverse = !!this._options.reverse;
-  this._reverse = reverse;
-  if (this._options.start || this._options.end) {
-    var start = this._options.start !== undefined ? String(this._options.start) : '';
-    var end = this._options.end !== undefined ? String(this._options.end) : '';
+Iterator.prototype.prepareQuery = function(options) {
+  this._reverse = !!options.reverse;
+  if (!this._values) {
+    // key streams: no need for lua
+    this.cmdName = this._reverse ? 'zrevrangebylex' : 'zrangebylex';
+  } else {
+    var scriptName;
+    if (!this._keys) {
+      if (this._reverse) {
+        scriptName = 'zhrevvalues';
+      } else {
+        scriptName = 'zhvalues';
+      }
+    } else {
+      if (this._reverse) {
+        scriptName = 'zhrevpairs';
+      } else {
+        scriptName = 'zhpairs';
+      }
+    }
+    this.sha = scriptsloader.getSha(scriptName);
+  }
+
+  var reverse = this._reverse;
+  if (options.start || options.end) {
+    var start = options.start !== undefined ? String(options.start) : '';
+    var end = options.end !== undefined ? String(options.end) : '';
     if (start !== '' || end !== '') {
-      this._start = start === '' ? (reverse ? '+' : '-') : ((this._options._exclusiveStart ? '(' : '[') + start);
-      this._end   = end   === '' ? (reverse ? '-' : '+') : ((this._options._exclusiveEnd   ? '(' : '[') + end);
+      this._start = start === '' ? (reverse ? '+' : '-') : ((options._exclusiveStart ? '(' : '[') + start);
+      this._end   = end   === '' ? (reverse ? '-' : '+') : ((options._exclusiveEnd   ? '(' : '[') + end);
       return;
     }
   }
@@ -112,96 +127,95 @@ Iterator.prototype.prepareQuery = function() {
   this._end   = reverse ? '-' : '+';
 };
 
+Iterator.prototype.makeRangeArgs = function() {
+  if (this.sha) {
+    return [ this.sha, 1, this.db.location, this._start, this._end, 'LIMIT', this._offset ];
+  } else {
+    return [ this.db.location+':z', this._start, this._end, 'LIMIT', this._offset ];
+  }
+};
+
 Iterator.prototype._next = function (callback) {
   if (this._limit > -1 && this._count >= this._limit) {
     return setImmediate(callback);
   }
-  if (this._valPointer && this._valPointer < this._keys.length) {
+  if (this._pointer && this._pointer < this._buffered.length) {
     this._shift(callback);
-  } else if (!this._bufferedKeys.length || this._keyPointer >= this._bufferedKeys.length) {
-    this._fetchKeys(callback);
   } else {
-    this._fetchValues(callback);
+    this._fetch(callback);
   }
 };
 
 /**
- * Gets a batch of keys
+ * Gets a batch of key or values or pairs
  */
-Iterator.prototype._fetchKeys = function(callback) {
+Iterator.prototype._fetch = function(callback) {
   if (this.db.closed) { return callback(); }
-  var rangeArgs = [ this.db.location+':z', this._start, this._end ];
-  rangeArgs.push('LIMIT');
-  rangeArgs.push(this._offset);
   var size;
-  if (this._options.limit > -1) {
-    var remain = this._options.limit - this._offset;
+  if (this._limit > -1) {
+    var remain = this._limit - this._offset;
     if (remain <= 0) {
       return callback();
     }
-    size = remain <= this._sizeKeys ? remain : this._sizeKeys;
+    size = remain <= this._highWaterMark ? remain : this._highWaterMark;
   } else {
-    size = this._sizeKeys;
+    size = this._highWaterMark;
   }
-  this._offset += size;
+  var rangeArgs = this.makeRangeArgs();
   rangeArgs.push(size);
+
+  this._offset += size;
   this._iterations++;
-  var cmd = this._options.reverse ? 'zrevrangebylex' : 'zrangebylex';
+
   var self = this;
-  return this.db.db.send_command(cmd, rangeArgs, function(e, reply) {
+  function complete(err, reply) {
+    if (err) {
+      return callback(err);
+    }
     if (!reply || reply.length === 0) {
       return setImmediate(callback);
     }
-    self._keyPointer = 0;
-    self._bufferedKeys = reply;
-    self._fetchValues(callback);
-  });
-
-};
-
-Iterator.prototype._fetchValues = function(callback) {
-  if (this.db.closed) { return callback(); }
-  var self = this;
-  if (this._keyPointer === 0 && this._sizeValues >= this._bufferedKeys.length) {
-    this._keys = this._bufferedKeys;
-  } else {
-    this._keys = this._bufferedKeys.slice(this._keyPointer, this._keyPointer + this._sizeValues);
-  }
-  this._keyPointer += this._sizeValues;
-  this.db.db.hmget(this.db.location+':h', this._keys, function(err, values) {
-    if (err) { return callback(self.db.closed ? null : err); }
-    self._values = values;
-    if (!values.length) {
-      return callback();
-    }
-    self._valPointer = 0;
+    self._pointer = 0;
+    self._buffered = reply;
     self._shift(callback);
-  });
+  }
+  if (this.cmdName) {
+    return this.db.db.send_command(this.cmdName, rangeArgs, complete);
+  } else {
+    this.db.db.evalsha(rangeArgs, complete);
+  }
 };
 
 /**
  * Gets the next key/value from the buffered keys and values.
  */
 Iterator.prototype._shift = function(callback) {
-    // todo: tell redis to return buffers and we have less things to do?
+  // todo: tell redis to return buffers and we have less things to do?
   var key, value;
-  var i = this._valPointer;
-  this._valPointer++;
-  if (this._keyAsBuffer) {
-    key = new Buffer(this._keys[i]);
-  } else {
-    key = this._keys[i];
+  var i = this._pointer;
+  if (this._keys) {
+    this._pointer++;
+    if (this._keyAsBuffer) {
+      key = new Buffer(this._buffered[i]);
+    } else {
+      key = this._buffered[i];
+    }
   }
-  try {
-    value = JSON.parse(this._values[i]);
-  } catch(x) {
-    console.trace('unexpected', this._values[i], x);
-  }
-  if (this._valueAsBuffer) {
-    value = new Buffer(value);
-  } else {
-    value = String(value);
+  if (this._values) {
+    i++;
+    this._pointer++;
+    try {
+      value = JSON.parse(this._buffered[i]);
+    } catch(x) {
+      console.trace('unexpected', this._buffered[i], x);
+    }
+    if (this._valueAsBuffer) {
+      value = new Buffer(value);
+    } else {
+      value = String(value);
+    }
   }
   this._count++;
   callback(null, key, value);
 };
+

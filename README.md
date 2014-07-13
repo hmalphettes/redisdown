@@ -6,6 +6,8 @@ Requirements: redis-2.8 or more recent.
 
 Uses a sorted-set to order the keys and a hash to store the values.
 
+Fetches the ordered key value pairs during iterations with a single redis lua call.
+
 [Abstract-LevelDOWN](https://github.com/rvagg/abstract-leveldown) testsuite is green.
 
 # Example
@@ -54,11 +56,10 @@ db.put('name', 'LevelUP', function (err) {
 
 options is a hash that is passed to the redis library to create a redis client:
 
-* `batchSizeKeys` number of keys to fetch at once during an iteration. Defaults to 1024.
-* `batchSizeValues` number of values to fetch at once during an iteration. Defaults to 128.
+* `highWaterMark` number of values to fetch in one redis call for iteration. Defaults to 256.
 * `port` redis port. Defaults to '127.0.0.1'
 * `host` redis host. Defaults to 6379
-* `redis` already configured redis client. redisDown will not open or close it. host and port are ignored.
+* `redis` already configured redis client. redisDown will not open or close it. host and port and all other redis options are ignored.
 * Other options: https://github.com/mranney/node_redis#rediscreateclientport-host-options
 
 -----------------------------------
@@ -69,6 +70,7 @@ options is a hash that is passed to the redis library to create a redis client:
 # Pouchdb integrations tests: all 3605 of them
 ---------------------------------------------------------
 `npm run-script test-pouchdb-redis`
+
 The script will install the extra required dependencies.
 It works for me.
 
@@ -80,5 +82,4 @@ If you need something different, let me know.
 
 # HELP Wanted
 - When results are buffers we should be able to simply pass them from redis to the consumer without traveling though a String.
-- Use a lua script to load the value and the key at once?
 - Collation: do we need to worry about this?

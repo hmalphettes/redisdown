@@ -4,6 +4,7 @@ var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN;
 var inherits = require('util').inherits;
 
 var RDIterator = require('./iterator');
+var scriptsloader = require('./scriptsloader');
 
 /**
  * @param location prefix for the database.
@@ -70,8 +71,9 @@ RedisDown.prototype._open = function (options, callback) {
       setImmediate(function () { callback(null, self); });
     });
   }
-
-  setImmediate(function () { callback(null, self); });
+  scriptsloader.preload(this.db, function() {
+    setImmediate(function () { callback(null, self); });
+  });
 };
 
 RedisDown.prototype._get = function (key, options, cb) {
@@ -194,6 +196,13 @@ RedisDown.prototype.destroy = function (doClose, callback) {
       callback();
     }
   });
+};
+
+/**
+ * Lazy load the lua scripts
+ */
+RedisDown.prototype._loadScripts = function(callback) {
+
 };
 
 /**
