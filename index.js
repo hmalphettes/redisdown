@@ -199,13 +199,6 @@ RedisDown.prototype.destroy = function (doClose, callback) {
 };
 
 /**
- * Lazy load the lua scripts
- */
-RedisDown.prototype._loadScripts = function(callback) {
-
-};
-
-/**
  * Internal:
  * create an identifier for a redis client from the options passed to _open.
  * when the identifier is identical, it is safe to reuse the same client.
