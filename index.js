@@ -18,10 +18,8 @@ function RedisDown(location) {
 
 module.exports = RedisDown;
 
-// default number of keys fetched at once during an iteration
-RedisDown.defaultBatchSizeKeys = 1024;
-// default number of values fetched at once during an iteration
-RedisDown.defaultBatchSizeValues = 128;
+// default number of items fetched at once during by an iterator
+RedisDown.defaultHighWaterMark = 128;
 
 // our new prototype inherits from AbstractLevelDOWN
 inherits(RedisDown, AbstractLevelDOWN);
@@ -40,8 +38,7 @@ RedisDown.dbs = {};
  * For a client to be reused, it requires the same port, host and options.
  */
 RedisDown.prototype._open = function (options, callback) {
-  this.batchSizeKeys   = options.batchSizeKeys   || RedisDown.defaultBatchSizeKeys;
-  this.batchSizeValues = options.batchSizeValues || RedisDown.defaultBatchSizeValues;
+  this.highWaterMark   = options.highWaterMark   || RedisDown.defaultHighWaterMark;
   if (typeof options.hget === 'function') {
     this.db = options.hget;
     this.quitDbOnClose = false;

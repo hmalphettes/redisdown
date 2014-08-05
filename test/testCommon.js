@@ -1,8 +1,7 @@
 var redisLib = require('redis');
 var RedisDown = require('../');
 
-var defaultBatchSizeKeys   = RedisDown.defaultBatchSizeKeys;
-var defaultBatchSizeValues = RedisDown.defaultBatchSizeValues;
+var defaultHighWaterMark   = RedisDown.defaultHighWaterMark;
 
 var dbidx = 0
 
@@ -30,8 +29,7 @@ var dbidx = 0
       });
     }
   , setUpSmallBatches = function (t) {
-      RedisDown.defaultBatchSizeKeys   = 5;
-      RedisDown.defaultBatchSizeValues = 3;
+      RedisDown.defaultHighWaterMark   = 3;
       cleanup(function (err) {
         t.notOk(err, 'cleanup returned an error');
         t.end();
@@ -39,8 +37,7 @@ var dbidx = 0
     }
 
   , tearDown = function (t) {
-      RedisDown.defaultBatchSizeKeys   = defaultBatchSizeKeys;
-      RedisDown.defaultBatchSizeValues = defaultBatchSizeValues;
+      RedisDown.defaultHighWaterMark   = defaultHighWaterMark;
       setUp(t); // same cleanup!
     }
 
