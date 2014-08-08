@@ -195,27 +195,35 @@ Iterator.prototype._shift = function(callback) {
   var i = this._pointer;
   if (this._keys) {
     this._pointer++;
-    if (this._keyAsBuffer) {
-      key = new Buffer(this._buffered[i]);
-    } else {
-      key = this._buffered[i];
+    var vkey = this._buffered[i];
+    if (vkey !== undefined) {
+      if (this._keyAsBuffer) {
+        key = new Buffer(vkey);
+      } else {
+        key = vkey;
+      }
     }
   }
   if (this._values) {
     i++;
     this._pointer++;
-    try {
-      value = JSON.parse(this._buffered[i]);
-    } catch(x) {
-      console.trace('unexpected', this._buffered[i], x);
-    }
-    if (this._valueAsBuffer) {
-      value = new Buffer(value);
-    } else {
-      value = String(value);
+    var vvalue = this._buffered[i];
+    if (vvalue !== undefined) {
+      try {
+        value = JSON.parse(vvalue);
+      } catch(x) {
+        console.trace('unexpected', vvalue, x);
+      }
+      if (this._valueAsBuffer) {
+        value = new Buffer(value);
+      } else {
+        value = String(value);
+      }
     }
   }
-  this._count++;
+  if (key !== undefined || value !== undefined) {
+    this._count++;
+  }
   callback(null, key, value);
 };
 
