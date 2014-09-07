@@ -2,6 +2,7 @@
 var redisLib = require('redis');
 var AbstractLevelDOWN = require('abstract-leveldown').AbstractLevelDOWN;
 var inherits = require('util').inherits;
+var url = require('url');
 
 var RDIterator = require('./iterator');
 var scriptsloader = require('./scriptsloader');
@@ -56,7 +57,15 @@ RedisDown.prototype._open = function (options, callback) {
     this.quitDbOnClose = true;
   }
   if (!this.db) {
-    this.db = redisLib.createClient(options.port, options.host, options);
+    if (options.url) {
+      var redisURL = url.parse(options.url);
+      this.db = redis.createClient(redisURL.port, redisURL.hostname, options);
+      if (redisURL.auth) this.db.auth(redisURL.auth.split(":")[1]);
+    } else if (options.port || options.host) {
+      this.db = redisLib.createClient(options.port, options.host, options);
+    } else {
+      this.db = redisLib.createClient();
+    }
     if (!options.ownClient) {
       RedisDown.dbs[this.redisId] = { db: this.db, locations: [ this.location ] };
     }
