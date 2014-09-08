@@ -74,7 +74,6 @@ function preload(redis, done) {
     function load(sha) {
       var filePath = __dirname + '/luascripts/' + namesBySha[sha] + '.lua';
       fs.readFile(filePath, 'utf-8', function(err, source) {
-        console.log(filePath, 'loading', source);
         redis.send_command('SCRIPT', ['LOAD', source], function(err, _sha) {
           if (err) { return done(err); }
           if (sha !== _sha) {
