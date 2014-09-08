@@ -37,7 +37,7 @@ function Iterator(db, options) {
 		goodOptions(options, i);
 	}
   this._count = 0;
-  this._limit = options.limit || -1;
+  this._limit = isNaN(options.limit) ? -1 : options.limit;
 
   this._keyAsBuffer = 'keyAsBuffer' in options ? !!options.keyAsBuffer : false;
   this._valueAsBuffer = 'valueAsBuffer' in options ? !!options.valueAsBuffer : false;
