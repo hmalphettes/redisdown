@@ -8,7 +8,8 @@ Uses a sorted-set to order the keys and a hash to store the values.
 
 Fetches the ordered key value pairs during iterations with a single redis lua call.
 
-[Abstract-LevelDOWN](https://github.com/rvagg/abstract-leveldown) testsuite is green.
+[Abstract-LevelDOWN](https://github.com/rvagg/abstract-leveldown) testsuite is green
+except for the ['implicit iterator snapshot'](https://github.com/hmalphettes/redisdown/issues/10).
 
 # Example
 
