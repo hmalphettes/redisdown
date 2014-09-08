@@ -59,8 +59,10 @@ RedisDown.prototype._open = function (options, callback) {
   if (!this.db) {
     if (options.url) {
       var redisURL = url.parse(options.url);
-      this.db = redis.createClient(redisURL.port, redisURL.hostname, options);
-      if (redisURL.auth) this.db.auth(redisURL.auth.split(":")[1]);
+      if (redisURL.auth) {
+        options.auth_pass = redisURL.auth.split(':')[1];
+      }
+      this.db = redisLib.createClient(redisURL.port, redisURL.hostname, options);
     } else if (options.port || options.host) {
       this.db = redisLib.createClient(options.port, options.host, options);
     } else {
