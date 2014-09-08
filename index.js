@@ -165,7 +165,7 @@ RedisDown.prototype._close = function (callback) {
 	setImmediate(callback);
 };
 
-RedisDown.prototype.iterator = function (options) {
+RedisDown.prototype._iterator = function (options) {
   return new RDIterator(this, options);
 };
 
