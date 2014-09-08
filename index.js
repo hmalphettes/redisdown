@@ -47,23 +47,20 @@ RedisDown.prototype._open = function (options, callback) {
     this.db = options.redis;
     this.quitDbOnClose = false;
   } else if (!options.ownClient) {
-    this.redisId = _makeRedisId(options);
+    options = _makeRedisId(this.location, options);
+    this.redisId = JSON.stringify(options);
     var dbDesc = RedisDown.dbs[this.redisId];
     if (dbDesc) {
       this.db = dbDesc.db;
-      dbDesc.locations.push(this.location);
+      dbDesc.locations.push(sanitizeLocation(this.location));
     }
   } else {
+    options = _makeRedisId(this.location, options);
     this.quitDbOnClose = true;
   }
+  this.location = sanitizeLocation(this.location);
   if (!this.db) {
-    if (options.url) {
-      var redisURL = url.parse(options.url);
-      if (redisURL.auth) {
-        options.auth_pass = redisURL.auth.split(':')[1];
-      }
-      this.db = redisLib.createClient(redisURL.port, redisURL.hostname, options);
-    } else if (options.port || options.host) {
+    if (options.port || options.host) {
       this.db = redisLib.createClient(options.port, options.host, options);
     } else {
       this.db = redisLib.createClient();
@@ -207,11 +204,11 @@ RedisDown.prototype.destroy = function (doClose, callback) {
 };
 
 /**
- * Internal:
+ * Internal: generate the options for redis.
  * create an identifier for a redis client from the options passed to _open.
  * when the identifier is identical, it is safe to reuse the same client.
  */
-function _makeRedisId(options) {
+function _makeRedisId(location, options) {
   var redisIdOptions = [ 'host', 'port',
     'parser', 'return_buffers', 'detect_buffers', 'socket_nodelay', 'no_ready_check',
     'enable_offline_queue', 'retry_max_delay', 'connect_timeout', 'max_attempts' ];
@@ -221,7 +218,26 @@ function _makeRedisId(options) {
       redisOptions[opt] = options[opt];
     }
   });
-  return JSON.stringify(redisOptions);
+  if (options.url || (location && location.indexOf('://') !== -1)) {
+    var redisURL = url.parse(options.url || location);
+    redisOptions.port = redisURL.port;
+    redisOptions.host = redisURL.hostname;
+    if (redisURL.auth) {
+      redisOptions.auth_pass = redisURL.auth.split(':')[1];
+    }
+  }
+  return redisOptions;
+}
+
+function sanitizeLocation(location) {
+  if (!location) { return 'rd'; }
+  if (location.indexOf('://')) {
+    location = url.parse(location).pathname || 'rd';
+  }
+  if (location.charAt(0) === '/') {
+    return location.substring(1);
+  }
+  return location;
 }
 
 RedisDown.reset = function(callback) {
