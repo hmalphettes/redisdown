@@ -192,10 +192,9 @@ Iterator.prototype._fetch = function(callback) {
 Iterator.prototype._shift = function(callback) {
   // todo: tell redis to return buffers and we have less things to do?
   var key, value;
-  var i = this._pointer;
   if (this._keys) {
+    var vkey = this._buffered[this._pointer];
     this._pointer++;
-    var vkey = this._buffered[i];
     if (vkey !== undefined) {
       if (this._keyAsBuffer) {
         key = new Buffer(vkey);
@@ -205,9 +204,8 @@ Iterator.prototype._shift = function(callback) {
     }
   }
   if (this._values) {
-    i++;
+    var vvalue = this._buffered[this._pointer];
     this._pointer++;
-    var vvalue = this._buffered[i];
     if (vvalue !== undefined) {
       try {
         value = JSON.parse(vvalue);
