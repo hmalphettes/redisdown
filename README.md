@@ -27,6 +27,11 @@ var db = levelup('mydb', { db: redisdown, host: 'localhost', port: 6379 })
 // if you already have a redis client
 //var db = levelup('mydb', { db: redisdown, redis: redisClient })
 
+// if you use an URL environment variable
+//var db = levelup('mydb', { db: redisdown, url: process.env.REDIS_URL })
+// if you Redis Cloud on Heroku
+//var db = levelup('mydb', { db: redisdown, url: process.env.REDISCLOUD_URL })
+
 // 2) put a key & value
 db.put('name', 'LevelUP', function (err) {
   if (err) return console.log('Ooops!', err) // some kind of I/O error
