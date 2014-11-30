@@ -99,9 +99,9 @@ Iterator.prototype.prepareQuery = function(options) {
     var scriptName;
     if (!this._keys) {
       if (this._reverse) {
-        scriptName = 'zhrevvalues';
+        scriptName = 'zhrevvalues-lk';
       } else {
-        scriptName = 'zhvalues';
+        scriptName = 'zhvalues-lk';
       }
     } else {
       if (this._reverse) {
@@ -129,9 +129,9 @@ Iterator.prototype.prepareQuery = function(options) {
 
 Iterator.prototype.makeRangeArgs = function() {
   if (this.sha) {
-    return [ this.sha, 1, this.db.location, this._start, this._end, 'LIMIT', this._offset ];
+    return [ this.sha, 1, this.db.location, this._start, this._end, 'LIMIT', 0 ];
   } else {
-    return [ this.db.location+':z', this._start, this._end, 'LIMIT', this._offset ];
+    return [ this.db.location+':z', this._start, this._end, 'LIMIT', 0 ];
   }
 };
 
@@ -177,6 +177,16 @@ Iterator.prototype._fetch = function(callback) {
     }
     self._pointer = 0;
     self._buffered = reply;
+    if (self._buffered.length) {
+      // update _start for the next page fetch
+      if (!self._keys) {
+        self._start = '(' + self._buffered.pop();
+      } else if (!self._values) {
+        self._start = '(' + self._buffered[self._buffered.length-1];
+      } else {
+        self._start = '(' + self._buffered[self._buffered.length-2];
+      }
+    }
     self._shift(callback);
   }
   if (this.cmdName) {
@@ -224,4 +234,3 @@ Iterator.prototype._shift = function(callback) {
   }
   callback(null, key, value);
 };
-
