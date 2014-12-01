@@ -179,7 +179,7 @@ RedisDown.destroy = function (location, options, callback) {
     callback = options;
     options = {};
   }
-  var client = redisLib.createClient(options.post, options.host, options);
+  var client = redisLib.createClient(options.port, options.host, options);
   client.del(location+':h', location+':z', function(e) {
     client.quit();
     callback(e);
