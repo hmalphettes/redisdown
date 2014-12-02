@@ -29,7 +29,7 @@ var db = levelup('mydb', { db: redisdown, host: 'localhost', port: 6379 })
 
 // if you use an URL environment variable
 //var db = levelup('mydb', { db: redisdown, url: process.env.REDIS_URL })
-// if you Redis Cloud on Heroku
+// if you use Redis Cloud on Heroku
 //var db = levelup('mydb', { db: redisdown, url: process.env.REDISCLOUD_URL })
 
 // 2) put a key & value
@@ -87,5 +87,5 @@ Copyright: Sutoiku Inc 2014.
 If you need something different, let me know.
 
 # HELP Wanted
-- When results are buffers we should be able to simply pass them from redis to the consumer without traveling though a String.
+- When results are buffers we should be able to simply pass them from redis to the consumer without encoding buffers slices into Strings.
 - Collation: do we need to worry about this?
