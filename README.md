@@ -2,7 +2,9 @@
 
 Redis backend for [LevelUP](https://github.com/rvagg/node-levelup)
 
-Requirements: redis-2.8 or more recent.
+Requirements:
+* redis-2.8 or more recent.
+* node-0.10, node-0.11, iojs-1.0.1
 
 Uses a sorted-set to order the keys and a hash to store the values.
 
