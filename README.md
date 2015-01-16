@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/hmalphettes/redisdown.svg?branch=master)](https://travis-ci.org/hmalphettes/redisdown)
+
 # RedisDOWN
 
 Redis backend for [LevelUP](https://github.com/rvagg/node-levelup)
