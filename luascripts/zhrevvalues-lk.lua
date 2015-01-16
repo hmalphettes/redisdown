@@ -11,5 +11,8 @@ if #keys == 0 then
   return keys
 end
 local vals = redis.call('hmget',KEYS[1]..':h',unpack(keys))
+if vals == nil then
+  return nil
+end
 vals[#keys+1] = keys[#keys]
 return vals
