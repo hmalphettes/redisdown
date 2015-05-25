@@ -237,6 +237,11 @@ function sanitizeLocation(location) {
   if (location.charAt(0) === '/') {
     return location.substring(1);
   }
+  // Keep the hash delimited by curly brackets safe
+  // as it is used by redis-cluster to force the selection of a slot.
+  if (location.indexOf('%7B') === 0 && location.indexOf('%7D') > 0) {
+    location = location.replace('%7B', '{').replace('%7D', '}');
+  }
   return location;
 }
 
