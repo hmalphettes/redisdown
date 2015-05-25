@@ -84,16 +84,21 @@ RedisDown.prototype._open = function (options, callback) {
 RedisDown.prototype._get = function (key, options, cb) {
 	this.db.hget(this.location+':h', key, function(e, v) {
 		if (e) { return cb(e); }
-		if (!v) { return cb(new Error('NotFound error ' + key)); }
+		if (v === null || v === undefined) { return cb(new Error('NotFound error ' + key)); }
 		var json;
-		try {
-			json = JSON.parse(v);
-		} catch(e) {
-			return cb(e);
-		}
-	  var asBuffer = true;
+    if (v === '') {
+      json = v;
+    } else {
+  		try {
+  			json = JSON.parse(v);
+  		} catch(e) {
+  			return cb(e);
+  		}
+    }
 	  if (options.asBuffer === false || options.raw) {
 	    cb(null, json);
+    } else if (json === null || json === undefined) {
+			cb(null, new Buffer(''));
 	  } else {
 			cb(null, new Buffer(json));
 		}
@@ -123,7 +128,7 @@ RedisDown.prototype._batch = function (array, options, callback) {
 };
 
 RedisDown.prototype.__appendPutCmd = function(cmds, key, value) {
-	cmds.push(['hset', this.location+':h', key, JSON.stringify(value) ]);
+	cmds.push(['hset', this.location+':h', key, value === undefined ? '' : JSON.stringify(value) ]);
 	cmds.push(['zadd', this.location+':z', 0, key ]);
   return cmds;
 };
