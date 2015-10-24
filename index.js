@@ -28,6 +28,10 @@ inherits(RedisDown, AbstractLevelDOWN);
 // host:port -> { db: client, locations: [] }
 RedisDown.dbs = {};
 
+// location as passed in the constructor -> connection-options
+// Used by pouchdb when calling RedisDown.destroy
+RedisDown.connectionByLocation = {};
+
 /**
  * @param options: either one of
  *  - redis-client instance.
@@ -58,6 +62,7 @@ RedisDown.prototype._open = function (options, callback) {
     options = _makeRedisId(this.location, options);
     this.quitDbOnClose = true;
   }
+  var oriLocation = this.location;
   this.location = sanitizeLocation(this.location);
   if (!this.db) {
     if (options.port || options.host) {
@@ -68,6 +73,8 @@ RedisDown.prototype._open = function (options, callback) {
     if (!options.ownClient) {
       RedisDown.dbs[this.redisId] = { db: this.db, locations: [ this.location ] };
     }
+    // Also store the options to connect to the database for RedisDown.destroy
+    RedisDown.connectionByLocation[oriLocation] = options;
   }
   var self = this;
 
@@ -182,8 +189,12 @@ RedisDown.prototype._iterator = function (options) {
 RedisDown.destroy = function (location, options, callback) {
   if (typeof options === 'function') {
     callback = options;
-    options = {};
+    options = RedisDown.connectionByLocation[location];
   }
+  if (!options) {
+    return callback(new Error('No connection registered for "'+location+'"'));
+  }
+  var sanitizedLocation = sanitizeLocation(location);
   var client = redisLib.createClient(options.port, options.host, options);
   client.del(location+':h', location+':z', function(e) {
     client.quit();

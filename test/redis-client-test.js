@@ -48,6 +48,19 @@ module.exports.args = function (redisdown, test, testCommon) {
 			});
 		});
 	});
+  test('test destroy redis statically by name', function (t) {
+		t.equal(Object.keys(redisdown.dbs).length, 0);
+    var location = testCommon.location();
+    db = redisdown(location);
+    db.open({}, function(e) {
+    	t.notOk(e, 'no error');
+      redisdown.destroy(location, function(e) {
+        t.notOk(e, 'no error');
+        t.end();
+      });
+    });
+  });
+
 };
 
 module.exports.tearDown = function (test, testCommon) {
