@@ -209,7 +209,7 @@ Iterator.prototype._shift = function(callback) {
       if (this._keyAsBuffer) {
         key = new Buffer(vkey);
       } else {
-        key = vkey;
+        key = String(vkey);
       }
     }
   }

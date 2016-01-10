@@ -65,10 +65,14 @@ RedisDown.prototype._open = function (options, callback) {
   var oriLocation = this.location;
   this.location = sanitizeLocation(this.location);
   if (!this.db) {
+
+    // Make sure we pass return_buffers: true in options
+    options['return_buffers'] = ('undefined' === typeof options['return_buffers']? true : options['return_buffers']);
+
     if (options.port || options.host) {
       this.db = redisLib.createClient(options.port, options.host, options);
     } else {
-      this.db = redisLib.createClient();
+      this.db = redisLib.createClient({return_buffers: true});
     }
     if (!options.ownClient) {
       RedisDown.dbs[this.redisId] = { db: this.db, locations: [ this.location ] };
