@@ -117,6 +117,7 @@ RedisDown.prototype._get = function (key, options, cb) {
 };
 
 RedisDown.prototype._put = function (key, rawvalue, opt, cb) {
+  if (typeof rawvalue === 'undefined' || rawvalue === null) rawvalue = ''
 	this.__exec(this.__appendPutCmd([], key, rawvalue), cb);
 };
 
