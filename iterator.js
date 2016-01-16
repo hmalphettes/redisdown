@@ -6,6 +6,12 @@ module.exports = Iterator;
 
 var scriptsloader = require('./scriptsloader');
 
+var concatKey = function (prefix, key, force) {
+  if (typeof key === 'string' && (force || key.length)) return prefix + key
+  if (Buffer.isBuffer(key) && (force || key.length)) return Buffer.concat([new Buffer(prefix), key])
+  return key
+}
+
 function goodOptions(opts, name) {
   if (!(name in opts)) {
     return;
@@ -115,11 +121,11 @@ Iterator.prototype.prepareQuery = function(options) {
 
   var reverse = this._reverse;
   if (options.start || options.end) {
-    var start = options.start !== undefined ? String(options.start) : '';
-    var end = options.end !== undefined ? String(options.end) : '';
+    var start = options.start !== undefined ? (options.start) : '';
+    var end = options.end !== undefined ? (options.end) : '';
     if (start !== '' || end !== '') {
-      this._start = start === '' ? (reverse ? '+' : '-') : ((options._exclusiveStart ? '(' : '[') + start);
-      this._end   = end   === '' ? (reverse ? '-' : '+') : ((options._exclusiveEnd   ? '(' : '[') + end);
+      this._start = start === '' ? (reverse ? '+' : '-') : (concatKey((options._exclusiveStart ? '(' : '['), start));
+      this._end   = end   === '' ? (reverse ? '-' : '+') : (concatKey((options._exclusiveEnd   ? '(' : '['), end));
       return;
     }
   }
