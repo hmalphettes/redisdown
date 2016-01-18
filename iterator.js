@@ -223,15 +223,10 @@ Iterator.prototype._shift = function(callback) {
     var vvalue = this._buffered[this._pointer];
     this._pointer++;
     if (vvalue !== undefined) {
-      try {
-        value = vvalue;
-      } catch(x) {
-        console.trace('unexpected', vvalue, x);
-      }
       if (this._valueAsBuffer) {
-        value = new Buffer(value);
+        value = new Buffer(vvalue);
       } else {
-        value = String(value);
+        value = String(vvalue);
       }
     }
   }
