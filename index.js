@@ -65,10 +65,14 @@ RedisDown.prototype._open = function (options, callback) {
   var oriLocation = this.location;
   this.location = sanitizeLocation(this.location);
   if (!this.db) {
+
+    // Make sure we pass return_buffers: true in options
+    options['return_buffers'] = ('undefined' === typeof options['return_buffers']? true : options['return_buffers']);
+
     if (options.port || options.host) {
       this.db = redisLib.createClient(options.port, options.host, options);
     } else {
-      this.db = redisLib.createClient();
+      this.db = redisLib.createClient({return_buffers: true});
     }
     if (!options.ownClient) {
       RedisDown.dbs[this.redisId] = { db: this.db, locations: [ this.location ] };
@@ -92,27 +96,19 @@ RedisDown.prototype._get = function (key, options, cb) {
 	this.db.hget(this.location+':h', key, function(e, v) {
 		if (e) { return cb(e); }
 		if (v === null || v === undefined) { return cb(new Error('NotFound error ' + key)); }
-		var json;
-    if (v === '') {
-      json = v;
-    } else {
-  		try {
-  			json = JSON.parse(v);
-  		} catch(e) {
-  			return cb(e);
-  		}
-    }
+
 	  if (options.asBuffer === false || options.raw) {
-	    cb(null, json);
-    } else if (json === null || json === undefined) {
+	    cb(null, String(v || ''));
+    } else if (v === null || v === undefined) {
 			cb(null, new Buffer(''));
 	  } else {
-			cb(null, new Buffer(json));
+			cb(null, new Buffer(v));
 		}
 	});
 };
 
 RedisDown.prototype._put = function (key, rawvalue, opt, cb) {
+  if (typeof rawvalue === 'undefined' || rawvalue === null) rawvalue = ''
 	this.__exec(this.__appendPutCmd([], key, rawvalue), cb);
 };
 
@@ -135,7 +131,7 @@ RedisDown.prototype._batch = function (array, options, callback) {
 };
 
 RedisDown.prototype.__appendPutCmd = function(cmds, key, value) {
-	cmds.push(['hset', this.location+':h', key, value === undefined ? '' : JSON.stringify(value) ]);
+	cmds.push(['hset', this.location+':h', key, value === undefined ? '' : value ]);
 	cmds.push(['zadd', this.location+':z', 0, key ]);
   return cmds;
 };
