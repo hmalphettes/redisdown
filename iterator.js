@@ -224,7 +224,7 @@ Iterator.prototype._shift = function(callback) {
     this._pointer++;
     if (vvalue !== undefined) {
       try {
-        value = JSON.parse(vvalue);
+        value = vvalue;
       } catch(x) {
         console.trace('unexpected', vvalue, x);
       }

@@ -101,13 +101,13 @@ RedisDown.prototype._get = function (key, options, cb) {
       json = v;
     } else {
   		try {
-  			json = JSON.parse(v);
+  			json = v;
   		} catch(e) {
   			return cb(e);
   		}
     }
 	  if (options.asBuffer === false || options.raw) {
-	    cb(null, json);
+	    cb(null, String(json));
     } else if (json === null || json === undefined) {
 			cb(null, new Buffer(''));
 	  } else {
@@ -140,7 +140,7 @@ RedisDown.prototype._batch = function (array, options, callback) {
 };
 
 RedisDown.prototype.__appendPutCmd = function(cmds, key, value) {
-	cmds.push(['hset', this.location+':h', key, value === undefined ? '' : JSON.stringify(value) ]);
+	cmds.push(['hset', this.location+':h', key, value === undefined ? '' : (value) ]);
 	cmds.push(['zadd', this.location+':z', 0, key ]);
   return cmds;
 };
