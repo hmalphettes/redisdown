@@ -186,11 +186,11 @@ Iterator.prototype._fetch = function(callback) {
     if (self._buffered.length) {
       // update _start for the next page fetch
       if (!self._keys) {
-        self._start = '(' + self._buffered.pop();
+        self._start = concatKey('(', self._buffered.pop());
       } else if (!self._values) {
-        self._start = '(' + self._buffered[self._buffered.length-1];
+        self._start = concatKey('(', self._buffered[self._buffered.length-1]);
       } else {
-        self._start = '(' + self._buffered[self._buffered.length-2];
+        self._start = concatKey('(', self._buffered[self._buffered.length-2]);
       }
     }
     self._shift(callback);
