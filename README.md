@@ -89,5 +89,4 @@ Copyright: Sutoiku Inc 2014.
 If you need something different, let me know.
 
 # HELP Wanted
-- When results are buffers we should be able to simply pass them from redis to the consumer without encoding buffers slices into Strings.
 - Collation: do we need to worry about this?
