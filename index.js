@@ -121,9 +121,9 @@ RedisDown.prototype._batch = function (array, options, callback) {
 	for (var i = 0; i < array.length; i++) {
 		var op = array[i];
 		if (op.type === 'put') {
-      this.__appendPutCmd(cmds, op.key, op.value);
+      this.__appendPutCmd(cmds, op.key, op.value, op.prefix);
 		} else if (op.type === 'del') {
-      this.__appendDelCmd(cmds, op.key);
+      this.__appendDelCmd(cmds, op.key, op.prefix);
 		} else {
 			return callback(new Error('Unknow type of operation ' + JSON.stringify(op)));
 		}
@@ -131,14 +131,28 @@ RedisDown.prototype._batch = function (array, options, callback) {
   this.__exec(cmds, callback);
 };
 
-RedisDown.prototype.__appendPutCmd = function(cmds, key, value) {
-	cmds.push(['hset', this.location+':h', key, value === undefined ? '' : value ]);
-	cmds.push(['zadd', this.location+':z', 0, key ]);
+RedisDown.prototype.__getPrefix = function (prefix) {
+  if (typeof prefix === 'string') return prefix; // string prefix
+  if (prefix instanceof RedisDown) return prefix.location // RedisDown instance
+  if (prefix && prefix.toString() === 'LevelUP') { // LevelUP instance
+    // levelup v2
+    if (prefix._db instanceof RedisDown) return prefix._db.location
+    // levelup v1
+    if (prefix.options && prefix.options.db) return prefix.location
+  }
+  return this.location // default self location
+}
+
+RedisDown.prototype.__appendPutCmd = function(cmds, key, value, prefix) {
+  prefix = this.__getPrefix(prefix);
+	cmds.push(['hset', prefix+':h', key, value === undefined ? '' : value ]);
+	cmds.push(['zadd', prefix+':z', 0, key ]);
   return cmds;
 };
-RedisDown.prototype.__appendDelCmd = function(cmds, key) {
-	cmds.push(['hdel', this.location+':h', key ]);
-	cmds.push(['zrem', this.location+':z', key ]);
+RedisDown.prototype.__appendDelCmd = function(cmds, key, prefix) {
+  prefix = this.__getPrefix(prefix);
+	cmds.push(['hdel', prefix+':h', key ]);
+	cmds.push(['zrem', prefix+':z', key ]);
   return cmds;
 };
 RedisDown.prototype.__exec = function(cmds, callback) {
