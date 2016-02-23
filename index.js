@@ -132,27 +132,19 @@ RedisDown.prototype._batch = function (array, options, callback) {
 };
 
 RedisDown.prototype.__getPrefix = function (prefix) {
-  if (typeof prefix === 'string') return prefix; // string prefix
-  if (prefix instanceof RedisDown) return prefix.location // RedisDown instance
-  if (prefix && prefix.toString() === 'LevelUP') { // LevelUP instance
-    // levelup v2
-    if (prefix._db instanceof RedisDown) return prefix._db.location
-    // levelup v1
-    if (prefix.options && prefix.options.db) return prefix.location
-  }
-  return this.location // default self location
-}
+    return prefix || this.location;
+};
 
 RedisDown.prototype.__appendPutCmd = function(cmds, key, value, prefix) {
-  prefix = this.__getPrefix(prefix);
-	cmds.push(['hset', prefix+':h', key, value === undefined ? '' : value ]);
-	cmds.push(['zadd', prefix+':z', 0, key ]);
+  var resolvedPrefix = this.__getPrefix(prefix);
+	cmds.push(['hset', resolvedPrefix+':h', key, value === undefined ? '' : value ]);
+	cmds.push(['zadd', resolvedPrefix+':z', 0, key ]);
   return cmds;
 };
 RedisDown.prototype.__appendDelCmd = function(cmds, key, prefix) {
-  prefix = this.__getPrefix(prefix);
-	cmds.push(['hdel', prefix+':h', key ]);
-	cmds.push(['zrem', prefix+':z', key ]);
+  var resolvedPrefix = this.__getPrefix(prefix);
+	cmds.push(['hdel', resolvedPrefix+':h', key ]);
+	cmds.push(['zrem', resolvedPrefix+':z', key ]);
   return cmds;
 };
 RedisDown.prototype.__exec = function(cmds, callback) {
