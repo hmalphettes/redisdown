@@ -75,6 +75,17 @@ options is a hash that is passed to the redis library to create a redis client:
 ### redisdown.destroy(location, [options, ]callback)
 <code>destroy()</code> is used to completely delete all data in redis related to the location.
 
+-----------------------------------
+<a name="redisdown_batch_prefixes"></a>
+### redisdown#batch([{type: 'put', key: 'foo1', value: 'bar1' [, prefix: 'subsection']}, ...])
+<code>batch()</code> supports an exra property `prefix` to store/retrieve/delete a key in a specific namespace of the redis DB.
+It is useful to support sublevel-ish batch operations: https://github.com/dominictarr/level-sublevel#batches
+and is well supported by redis.
+
+By default, the prefix is a string that is the path to the where redis stores the document.
+In order to resolve other types of prefixes, one would need to override the `#__getPrefix(prefix)` method.
+Passing a levelup instance is demonstrated here: https://github.com/hmalphettes/redisdown/blob/master/test/batch-prefix-test.js#L12
+
 # Pouchdb integrations tests: all 3605 of them
 ---------------------------------------------------------
 `npm run-script test-pouchdb-redis`
