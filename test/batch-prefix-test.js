@@ -1,5 +1,6 @@
 'use strict';
 var db1, db2, db3;
+var RedisDown = require('../');
 
 module.exports.setUp = function (redisdown, test, testCommon) {
   test('setUp common', testCommon.setUp);
@@ -8,6 +9,19 @@ module.exports.setUp = function (redisdown, test, testCommon) {
 module.exports.args = function (redisdown, test, testCommon) {
   test('batch prefix across redisdown instances', function (t) {
     db1 = redisdown(testCommon.location());
+    db1.__getPrefix = function (prefix) {
+      if (!prefix) { return this.location; }
+      if (typeof prefix === 'string') { return prefix; } // string prefix
+      if (prefix instanceof RedisDown) { return prefix.location; } // RedisDown instance
+      if (prefix && prefix.toString() === 'LevelUP') { // LevelUP instance
+        // levelup v2
+        if (prefix._db instanceof RedisDown) { return prefix._db.location; }
+        // levelup v1
+        if (prefix.options && prefix.options.db) { return prefix.location; }
+      }
+      // not applicable to these tests
+      t.fail();
+    };
     db2 = redisdown(testCommon.location());
     db3 = redisdown(testCommon.location());
     db1.open({}, function (e) {
