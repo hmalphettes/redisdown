@@ -7,6 +7,7 @@ var testBuffer = new Buffer('foo');
 
 /*** redis client management */
 require('./redis-client-test').all(leveljs, tape, testCommon);
+require('./batch-prefix-test').all(leveljs, tape, testCommon);
 
 /*** compatibility with basic LevelDOWN API ***/
 require('abstract-leveldown/abstract/leveldown-test').args(leveljs, tape, testCommon);
