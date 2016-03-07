@@ -13,6 +13,14 @@ Fetches the ordered key value pairs during iterations with a single redis lua ca
 [Abstract-LevelDOWN](https://github.com/rvagg/abstract-leveldown) testsuite is green
 except for the ['implicit iterator snapshot'](https://github.com/hmalphettes/redisdown/issues/10).
 
+# Warning: data migration from redisdown-v0.1.9
+redisdown-redisdown-v0.1.10 no longer JSON encode/decode itself. Levelup take care of that.
+JSON Data written in v0.1.9 is not correctly decoded back to a javascript object in v0.1.10 and above.
+
+This change was introduced to support binary values in redisdown and escaped the fact that it was breaking backward compatibility for the data.
+
+Workaround: https://github.com/hmalphettes/redisdown/issues/24#issuecomment-193076281
+
 # Example
 
 Copied and pasted from the levelup documentation.
