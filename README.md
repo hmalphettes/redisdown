@@ -34,7 +34,7 @@ var redisdown = require('redisdown')
 //    This will create or open the underlying LevelDB store.
 var db = levelup('mydb', { db: redisdown, host: 'localhost', port: 6379 })
 
-// If you use sentinel/cluster mode, you muse a single slot to store the values thanks to a `{hash}`
+// If you use sentinel/cluster mode, you must use a single slot to store the values thanks to a `{hash}`
 //var db = levelup('{thehash}path', { db: redisdown });
 
 // if you already have a redis client
