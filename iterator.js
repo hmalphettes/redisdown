@@ -6,11 +6,12 @@ module.exports = Iterator;
 
 var scriptsloader = require('./scriptsloader');
 
-var concatKey = function (prefix, key, force) {
-  if (typeof key === 'string' && (force || key.length)) return prefix + key
-  if (Buffer.isBuffer(key) && (force || key.length)) return Buffer.concat([new Buffer(prefix), key])
-  return key
-}
+var concatKey = function(prefix, key, force) {
+  if (typeof key === 'string' && (force || key.length)) return prefix + key;
+  if (Buffer.isBuffer(key) && (force || key.length))
+    return Buffer.concat([new Buffer(prefix), key]);
+  return key;
+};
 
 function goodOptions(opts, name) {
   if (!(name in opts)) {
@@ -27,26 +28,20 @@ function goodOptions(opts, name) {
     }
   }
 }
-var names = [
-  'start',
-  'end',
-  'gt',
-  'gte',
-  'lt',
-  'lte'
-];
+var names = ['start', 'end', 'gt', 'gte', 'lt', 'lte'];
 
 function Iterator(db, options) {
   AbstractIterator.call(this, db);
   options = options || {};
   for (var i = 0; i < options.length; i++) {
-		goodOptions(options, i);
-	}
+    goodOptions(options, i);
+  }
   this._count = 0;
   this._limit = isNaN(options.limit) ? -1 : options.limit;
 
   this._keyAsBuffer = 'keyAsBuffer' in options ? !!options.keyAsBuffer : false;
-  this._valueAsBuffer = 'valueAsBuffer' in options ? !!options.valueAsBuffer : false;
+  this._valueAsBuffer =
+    'valueAsBuffer' in options ? !!options.valueAsBuffer : false;
   this._keys = 'keys' in options ? !!options.keys : true;
   this._values = 'values' in options ? !!options.values : true;
 
@@ -54,7 +49,7 @@ function Iterator(db, options) {
   this._offset = 0;
   this._highWaterMark = options.highWaterMark || db.highWaterMark || 256;
 
-  this._pointer  = 0;
+  this._pointer = 0;
   this._buffered = [];
 
   _processArithmOptions(options);
@@ -121,27 +116,33 @@ Iterator.prototype.prepareQuery = function(options) {
 
   var reverse = this._reverse;
   if (options.start || options.end) {
-    var start = options.start !== undefined ? (options.start) : '';
-    var end = options.end !== undefined ? (options.end) : '';
+    var start = options.start !== undefined ? options.start : '';
+    var end = options.end !== undefined ? options.end : '';
     if (start !== '' || end !== '') {
-      this._start = start === '' ? (reverse ? '+' : '-') : (concatKey((options._exclusiveStart ? '(' : '['), start));
-      this._done   = end   === '' ? (reverse ? '-' : '+') : (concatKey((options._exclusiveEnd   ? '(' : '['), end));
+      this._start =
+        start === ''
+          ? reverse ? '+' : '-'
+          : concatKey(options._exclusiveStart ? '(' : '[', start);
+      this._done =
+        end === ''
+          ? reverse ? '-' : '+'
+          : concatKey(options._exclusiveEnd ? '(' : '[', end);
       return;
     }
   }
   this._start = reverse ? '+' : '-';
-  this._done   = reverse ? '-' : '+';
+  this._done = reverse ? '-' : '+';
 };
 
 Iterator.prototype.makeRangeArgs = function() {
   if (this.sha) {
-    return [ this.sha, 1, this.db.location, this._start, this._done, 'LIMIT', 0 ];
+    return [this.sha, 1, this.db.location, this._start, this._done, 'LIMIT', 0];
   } else {
-    return [ this.db.location+':z', this._start, this._done, 'LIMIT', 0 ];
+    return [this.db.location + ':z', this._start, this._done, 'LIMIT', 0];
   }
 };
 
-Iterator.prototype._next = function (callback) {
+Iterator.prototype._next = function(callback) {
   if (this._limit > -1 && this._count >= this._limit) {
     return setImmediate(callback);
   }
@@ -156,7 +157,9 @@ Iterator.prototype._next = function (callback) {
  * Gets a batch of key or values or pairs
  */
 Iterator.prototype._fetch = function(callback) {
-  if (this.db.closed) { return callback(); }
+  if (this.db.closed) {
+    return callback();
+  }
   var size;
   if (this._limit > -1) {
     var remain = this._limit - this._offset;
@@ -188,9 +191,9 @@ Iterator.prototype._fetch = function(callback) {
       if (!self._keys) {
         self._start = concatKey('(', self._buffered.pop());
       } else if (!self._values) {
-        self._start = concatKey('(', self._buffered[self._buffered.length-1]);
+        self._start = concatKey('(', self._buffered[self._buffered.length - 1]);
       } else {
-        self._start = concatKey('(', self._buffered[self._buffered.length-2]);
+        self._start = concatKey('(', self._buffered[self._buffered.length - 2]);
       }
     }
     self._shift(callback);

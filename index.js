@@ -14,7 +14,7 @@ function RedisDown(location) {
   if (!(this instanceof RedisDown)) {
     return new RedisDown(location);
   }
-	AbstractLevelDOWN.call(this, location);
+  AbstractLevelDOWN.call(this, location);
 }
 
 module.exports = RedisDown;
@@ -42,7 +42,7 @@ RedisDown.connectionByLocation = {};
  * RedisDOWN unless the option `ownClient` is truthy.
  * For a client to be reused, it requires the same port, host and options.
  */
-RedisDown.prototype._open = function (options, callback) {
+RedisDown.prototype._open = function(options, callback) {
   this.highWaterMark = options.highWaterMark || RedisDown.defaultHighWaterMark;
   if (typeof options.hget === 'function') {
     this.db = options.hget;
@@ -73,10 +73,10 @@ RedisDown.prototype._open = function (options, callback) {
       }
       this.db = redisLib.createClient(options.port, options.host, options);
     } else {
-      this.db = redisLib.createClient({return_buffers: true});
+      this.db = redisLib.createClient({ return_buffers: true });
     }
     if (!options.ownClient) {
-      RedisDown.dbs[this.redisId] = { db: this.db, locations: [ this.location ] };
+      RedisDown.dbs[this.redisId] = { db: this.db, locations: [this.location] };
     }
     // Also store the options to connect to the database for RedisDown.destroy
     RedisDown.connectionByLocation[uriLocation] = options;
@@ -85,73 +85,88 @@ RedisDown.prototype._open = function (options, callback) {
 
   if (options && options.destroyOnOpen) {
     return this.destroy(false, function() {
-      setImmediate(function () { callback(null, self); });
+      setImmediate(function() {
+        callback(null, self);
+      });
     });
   }
   scriptsloader.preload(this.db, function() {
-    setImmediate(function () { callback(null, self); });
+    setImmediate(function() {
+      callback(null, self);
+    });
   });
 };
 
-RedisDown.prototype._get = function (key, options, cb) {
-	this.db.hget(this.location+':h', key, function(e, v) {
-		if (e) { return cb(e); }
-		if (v === null || v === undefined) { return cb(new Error('NotFound error ' + key)); }
+RedisDown.prototype._get = function(key, options, cb) {
+  this.db.hget(this.location + ':h', key, function(e, v) {
+    if (e) {
+      return cb(e);
+    }
+    if (v === null || v === undefined) {
+      return cb(new Error('NotFound error ' + key));
+    }
 
-	  if (options.asBuffer === false || options.raw) {
-	    cb(null, String(v || ''));
+    if (options.asBuffer === false || options.raw) {
+      cb(null, String(v || ''));
     } else if (v === null || v === undefined) {
-			cb(null, new Buffer(''));
-	  } else {
-			cb(null, new Buffer(v));
-		}
-	});
+      cb(null, new Buffer(''));
+    } else {
+      cb(null, new Buffer(v));
+    }
+  });
 };
 
-RedisDown.prototype._put = function (key, rawvalue, opt, cb) {
-  if (typeof rawvalue === 'undefined' || rawvalue === null) rawvalue = ''
-	this.__exec(this.__appendPutCmd([], key, rawvalue), cb);
+RedisDown.prototype._put = function(key, rawvalue, opt, cb) {
+  if (typeof rawvalue === 'undefined' || rawvalue === null) rawvalue = '';
+  this.__exec(this.__appendPutCmd([], key, rawvalue), cb);
 };
 
-RedisDown.prototype._del = function (key, opt, cb) {
-	this.__exec(this.__appendDelCmd([], key), cb);
+RedisDown.prototype._del = function(key, opt, cb) {
+  this.__exec(this.__appendDelCmd([], key), cb);
 };
-RedisDown.prototype._batch = function (array, options, callback) {
-	var cmds = [];
-	for (var i = 0; i < array.length; i++) {
-		var op = array[i];
-		if (op.type === 'put') {
+RedisDown.prototype._batch = function(array, options, callback) {
+  var cmds = [];
+  for (var i = 0; i < array.length; i++) {
+    var op = array[i];
+    if (op.type === 'put') {
       this.__appendPutCmd(cmds, op.key, op.value, op.prefix);
-		} else if (op.type === 'del') {
+    } else if (op.type === 'del') {
       this.__appendDelCmd(cmds, op.key, op.prefix);
-		} else {
-			return callback(new Error('Unknow type of operation ' + JSON.stringify(op)));
-		}
-	}
+    } else {
+      return callback(
+        new Error('Unknow type of operation ' + JSON.stringify(op))
+      );
+    }
+  }
   this.__exec(cmds, callback);
 };
 
-RedisDown.prototype.__getPrefix = function (prefix) {
-    return prefix || this.location;
+RedisDown.prototype.__getPrefix = function(prefix) {
+  return prefix || this.location;
 };
 
 RedisDown.prototype.__appendPutCmd = function(cmds, key, value, prefix) {
   var resolvedPrefix = this.__getPrefix(prefix);
-	cmds.push(['hset', resolvedPrefix+':h', key, value === undefined ? '' : value ]);
-	cmds.push(['zadd', resolvedPrefix+':z', 0, key ]);
+  cmds.push([
+    'hset',
+    resolvedPrefix + ':h',
+    key,
+    value === undefined ? '' : value
+  ]);
+  cmds.push(['zadd', resolvedPrefix + ':z', 0, key]);
   return cmds;
 };
 RedisDown.prototype.__appendDelCmd = function(cmds, key, prefix) {
   var resolvedPrefix = this.__getPrefix(prefix);
-	cmds.push(['hdel', resolvedPrefix+':h', key ]);
-	cmds.push(['zrem', resolvedPrefix+':z', key ]);
+  cmds.push(['hdel', resolvedPrefix + ':h', key]);
+  cmds.push(['zrem', resolvedPrefix + ':z', key]);
   return cmds;
 };
 RedisDown.prototype.__exec = function(cmds, callback) {
-	this.db.multi(cmds).exec(callback);
+  this.db.multi(cmds).exec(callback);
 };
 
-RedisDown.prototype._close = function (callback) {
+RedisDown.prototype._close = function(callback) {
   this.closed = true;
   if (this.quitDbOnClose === false) {
     return setImmediate(callback);
@@ -171,15 +186,15 @@ RedisDown.prototype._close = function (callback) {
       delete RedisDown.dbs[this.redisId];
     }
   }
-	try {
-  	this.db.quit();
-	} catch(x) {
-		console.log('Error attempting to quit the redis client', x);
-	}
-	setImmediate(callback);
+  try {
+    this.db.quit();
+  } catch (x) {
+    console.log('Error attempting to quit the redis client', x);
+  }
+  setImmediate(callback);
 };
 
-RedisDown.prototype._iterator = function (options) {
+RedisDown.prototype._iterator = function(options) {
   return new RDIterator(this, options);
 };
 
@@ -189,17 +204,19 @@ RedisDown.prototype._iterator = function (options) {
  * Quit the client.
  * Callbacks
  */
-RedisDown.destroy = function (location, options, callback) {
+RedisDown.destroy = function(location, options, callback) {
   if (typeof options === 'function') {
     callback = options;
     options = RedisDown.connectionByLocation[location];
   }
   if (!options) {
-    return callback(new Error('No connection registered for "'+location+'"'));
+    return callback(
+      new Error('No connection registered for "' + location + '"')
+    );
   }
   var sanitizedLocation = sanitizeLocation(location);
   var client = redisLib.createClient(options.port, options.host, options);
-  client.del(location+':h', location+':z', function(e) {
+  client.del(location + ':h', location + ':z', function(e) {
     client.quit();
     callback(e);
   });
@@ -208,13 +225,13 @@ RedisDown.destroy = function (location, options, callback) {
 /**
  * @param doClose: optional parameter, by default true to close the client
  */
-RedisDown.prototype.destroy = function (doClose, callback) {
+RedisDown.prototype.destroy = function(doClose, callback) {
   if (!callback && typeof doClose === 'function') {
     callback = doClose;
     doClose = true;
   }
   var self = this;
-  this.db.del(this.location+':h', this.location+':z', function(e) {
+  this.db.del(this.location + ':h', this.location + ':z', function(e) {
     if (doClose) {
       self.close(callback);
     } else {
@@ -229,9 +246,19 @@ RedisDown.prototype.destroy = function (doClose, callback) {
  * when the identifier is identical, it is safe to reuse the same client.
  */
 function _makeRedisId(location, options) {
-  var redisIdOptions = [ 'host', 'port',
-    'parser', 'return_buffers', 'detect_buffers', 'socket_nodelay', 'no_ready_check',
-    'enable_offline_queue', 'retry_max_delay', 'connect_timeout', 'max_attempts' ];
+  var redisIdOptions = [
+    'host',
+    'port',
+    'parser',
+    'return_buffers',
+    'detect_buffers',
+    'socket_nodelay',
+    'no_ready_check',
+    'enable_offline_queue',
+    'retry_max_delay',
+    'connect_timeout',
+    'max_attempts'
+  ];
   var redisOptions = {};
   redisIdOptions.forEach(function(opt) {
     if (options[opt] !== undefined && options[opt] !== null) {
@@ -250,7 +277,9 @@ function _makeRedisId(location, options) {
 }
 
 function sanitizeLocation(location) {
-  if (!location) { return 'rd'; }
+  if (!location) {
+    return 'rd';
+  }
   if (location.indexOf('://')) {
     location = url.parse(location).pathname || 'rd';
   }
@@ -271,8 +300,7 @@ RedisDown.reset = function(callback) {
       try {
         var db = RedisDown.dbs[k].db;
         db.quit();
-      } catch(x) {
-      }
+      } catch (x) {}
     }
   }
   if (callback) {

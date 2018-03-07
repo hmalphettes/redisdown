@@ -8,6 +8,9 @@
   },
   "main": "index.js",
   "scripts": {
+    "lint": "eslint .",
+    "prettier": "prettier --write *.js test/*.js",
+    "pretest": "npm run lint",
     "test": "node ./test/test.js",
     "test-pouchdb": "./test/pouchdb/test-pouchdb.sh",
     "test-pouchdb-redis": "./test/pouchdb/test-pouchdb-redis.sh"
@@ -25,10 +28,24 @@
     "redis": "*"
   },
   "devDependencies": {
+    "eslint": "^4.18.2",
+    "eslint-plugin-prettier": "2.6.0",
+    "prettier": "1.11.1",
     "rimraf": "^2.6.2",
     "tape": "*"
   },
   "engines": {
     "node": ">=4.0.0"
+  },
+  "prettier": {
+    "singleQuote": true
+  },
+  "eslintConfig": {
+    "plugins": [
+      "prettier"
+    ],
+    "rules": {
+      "prettier/prettier": "error"
+    }
   }
 }

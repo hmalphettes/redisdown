@@ -8,10 +8,14 @@ var namesBySha;
 var sourcesBySha;
 
 function computeShas(done) {
-  if (shasByName) { return done(); }
+  if (shasByName) {
+    return done();
+  }
   var dir = __dirname + '/luascripts';
   fs.readdir(dir, function(err, files) {
-    if (err) { return done(err); }
+    if (err) {
+      return done(err);
+    }
     var _shasByName = {};
     var _namesBySha = {};
     var _sourcesByName = {};
@@ -40,7 +44,10 @@ function computeSha(filePath, _namesBySha, _shasByName, done) {
     if (err) {
       return done(err);
     }
-    var sha = crypto.createHash('sha1').update(source, 'utf8').digest('hex');
+    var sha = crypto
+      .createHash('sha1')
+      .update(source, 'utf8')
+      .digest('hex');
     _shasByName[scriptName] = sha;
     _namesBySha[sha] = scriptName;
     done();
@@ -50,7 +57,9 @@ function computeSha(filePath, _namesBySha, _shasByName, done) {
 function preload(redis, done) {
   if (!shasByName) {
     return computeShas(function(e) {
-      if (e) { return done(e); }
+      if (e) {
+        return done(e);
+      }
       preload(redis, done);
     });
   }
@@ -75,9 +84,13 @@ function preload(redis, done) {
       var filePath = __dirname + '/luascripts/' + namesBySha[sha] + '.lua';
       fs.readFile(filePath, 'utf-8', function(err, source) {
         redis.send_command('SCRIPT', ['LOAD', source], function(err, _sha) {
-          if (err) { return done(err); }
+          if (err) {
+            return done(err);
+          }
           if (sha !== _sha) {
-            return done(new Error('Incorrect computation of the sha for ' + filePath));
+            return done(
+              new Error('Incorrect computation of the sha for ' + filePath)
+            );
           }
           lazyLoad();
         });
