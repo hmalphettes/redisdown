@@ -21,7 +21,7 @@
     "redis"
   ],
   "dependencies": {
-    "abstract-leveldown": "*",
+    "abstract-leveldown": "2.4.1",
     "redis": "*"
   },
   "devDependencies": {
