@@ -125,19 +125,19 @@ Iterator.prototype.prepareQuery = function(options) {
     var end = options.end !== undefined ? (options.end) : '';
     if (start !== '' || end !== '') {
       this._start = start === '' ? (reverse ? '+' : '-') : (concatKey((options._exclusiveStart ? '(' : '['), start));
-      this._end   = end   === '' ? (reverse ? '-' : '+') : (concatKey((options._exclusiveEnd   ? '(' : '['), end));
+      this._done   = end   === '' ? (reverse ? '-' : '+') : (concatKey((options._exclusiveEnd   ? '(' : '['), end));
       return;
     }
   }
   this._start = reverse ? '+' : '-';
-  this._end   = reverse ? '-' : '+';
+  this._done   = reverse ? '-' : '+';
 };
 
 Iterator.prototype.makeRangeArgs = function() {
   if (this.sha) {
-    return [ this.sha, 1, this.db.location, this._start, this._end, 'LIMIT', 0 ];
+    return [ this.sha, 1, this.db.location, this._start, this._done, 'LIMIT', 0 ];
   } else {
-    return [ this.db.location+':z', this._start, this._end, 'LIMIT', 0 ];
+    return [ this.db.location+':z', this._start, this._done, 'LIMIT', 0 ];
   }
 };
 

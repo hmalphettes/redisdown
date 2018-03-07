@@ -19,7 +19,7 @@ function RedisDown(location) {
 
 module.exports = RedisDown;
 
-// default number of items fetched at once during by an iterator
+// default number of items fetched at once by an iterator
 RedisDown.defaultHighWaterMark = 128;
 
 // our new prototype inherits from AbstractLevelDOWN
@@ -43,7 +43,7 @@ RedisDown.connectionByLocation = {};
  * For a client to be reused, it requires the same port, host and options.
  */
 RedisDown.prototype._open = function (options, callback) {
-  this.highWaterMark   = options.highWaterMark   || RedisDown.defaultHighWaterMark;
+  this.highWaterMark = options.highWaterMark || RedisDown.defaultHighWaterMark;
   if (typeof options.hget === 'function') {
     this.db = options.hget;
     this.quitDbOnClose = false;
@@ -62,10 +62,10 @@ RedisDown.prototype._open = function (options, callback) {
     options = _makeRedisId(this.location, options);
     this.quitDbOnClose = true;
   }
-  var oriLocation = this.location;
+  var uriLocation = this.location;
   this.location = sanitizeLocation(this.location);
-  if (!this.db) {
 
+  if (!this.db) {
     if (options.port || options.host) {
       // Set return_buffers to true by default
       if (options['return_buffers'] !== false) {
@@ -79,7 +79,7 @@ RedisDown.prototype._open = function (options, callback) {
       RedisDown.dbs[this.redisId] = { db: this.db, locations: [ this.location ] };
     }
     // Also store the options to connect to the database for RedisDown.destroy
-    RedisDown.connectionByLocation[oriLocation] = options;
+    RedisDown.connectionByLocation[uriLocation] = options;
   }
   var self = this;
 
@@ -204,6 +204,7 @@ RedisDown.destroy = function (location, options, callback) {
     callback(e);
   });
 };
+
 /**
  * @param doClose: optional parameter, by default true to close the client
  */

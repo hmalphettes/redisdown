@@ -21,10 +21,14 @@
     "redis"
   ],
   "dependencies": {
-    "abstract-leveldown": "*",
+    "abstract-leveldown": "^4.0.0",
     "redis": "*"
   },
   "devDependencies": {
+    "rimraf": "^2.6.2",
     "tape": "*"
+  },
+  "engines": {
+    "node": ">=4.0.0"
   }
 }
