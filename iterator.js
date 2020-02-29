@@ -1,16 +1,22 @@
 'use strict';
-var inherits = require('util').inherits;
-var AbstractIterator = require('abstract-leveldown/abstract-iterator');
+var inherits = require('inherits');
+var AbstractIterator = require('abstract-leveldown').AbstractIterator;
+var Buffer = require('safe-buffer').Buffer;
+
 inherits(Iterator, AbstractIterator);
 module.exports = Iterator;
 
-var scriptsloader = require('./scriptsloader');
+var scriptsLoader = require('./scriptsLoader');
 
 var concatKey = function (prefix, key, force) {
-  if (typeof key === 'string' && (force || key.length)) return prefix + key
-  if (Buffer.isBuffer(key) && (force || key.length)) return Buffer.concat([new Buffer(prefix), key])
-  return key
-}
+  if (typeof key === 'string' && (force || key.length)) {
+    return prefix + key;
+  }
+  if (Buffer.isBuffer(key) && (force || key.length)) {
+    return Buffer.concat([Buffer.from(prefix), key]);
+  }
+  return key;
+};
 
 function goodOptions(opts, name) {
   if (!(name in opts)) {
@@ -27,14 +33,6 @@ function goodOptions(opts, name) {
     }
   }
 }
-var names = [
-  'start',
-  'end',
-  'gt',
-  'gte',
-  'lt',
-  'lte'
-];
 
 function Iterator(db, options) {
   AbstractIterator.call(this, db);
@@ -116,7 +114,7 @@ Iterator.prototype.prepareQuery = function(options) {
         scriptName = 'zhpairs';
       }
     }
-    this.sha = scriptsloader.getSha(scriptName);
+    this.sha = scriptsLoader.getSha(scriptName);
   }
 
   var reverse = this._reverse;
@@ -125,19 +123,19 @@ Iterator.prototype.prepareQuery = function(options) {
     var end = options.end !== undefined ? (options.end) : '';
     if (start !== '' || end !== '') {
       this._start = start === '' ? (reverse ? '+' : '-') : (concatKey((options._exclusiveStart ? '(' : '['), start));
-      this._end   = end   === '' ? (reverse ? '-' : '+') : (concatKey((options._exclusiveEnd   ? '(' : '['), end));
+      this._done   = end   === '' ? (reverse ? '-' : '+') : (concatKey((options._exclusiveEnd   ? '(' : '['), end));
       return;
     }
   }
   this._start = reverse ? '+' : '-';
-  this._end   = reverse ? '-' : '+';
+  this._done   = reverse ? '-' : '+';
 };
 
 Iterator.prototype.makeRangeArgs = function() {
   if (this.sha) {
-    return [ this.sha, 1, this.db.location, this._start, this._end, 'LIMIT', 0 ];
+    return [ this.sha, 1, this.db.location, this._start, this._done, 'LIMIT', 0 ];
   } else {
-    return [ this.db.location+':z', this._start, this._end, 'LIMIT', 0 ];
+    return [ this.db.location+':z', this._start, this._done, 'LIMIT', 0 ];
   }
 };
 
@@ -213,7 +211,7 @@ Iterator.prototype._shift = function(callback) {
     this._pointer++;
     if (vkey !== undefined) {
       if (this._keyAsBuffer) {
-        key = new Buffer(vkey);
+        key = Buffer.from(vkey);
       } else {
         key = String(vkey);
       }
@@ -224,7 +222,7 @@ Iterator.prototype._shift = function(callback) {
     this._pointer++;
     if (vvalue !== undefined) {
       if (this._valueAsBuffer) {
-        value = new Buffer(vvalue);
+        value = Buffer.from(vvalue);
       } else {
         value = String(vvalue);
       }
