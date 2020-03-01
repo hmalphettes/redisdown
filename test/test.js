@@ -15,3 +15,10 @@ suite({
   snapshots: false,
   seek: false
 });
+
+var testCommon = require('./testCommon');
+
+/*** redis client management */
+require('./redis-client-test').all(leveljs, test, testCommon);
+require('./batch-prefix-test').all(leveljs, test, testCommon);
+

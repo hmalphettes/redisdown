@@ -85,8 +85,8 @@ RedisDown.prototype._open = function (options, callback) {
             RedisDown.dbs[this.redisId] = {db: this.db, locations: [this.location]};
         }
         // Also store the options to connect to the database for RedisDown.destroy
-        RedisDown.connectionByLocation[uriLocation] = options;
     }
+    RedisDown.connectionByLocation[uriLocation] = options;
     var self = this;
 
     if (options && options.destroyOnOpen) {
@@ -215,19 +215,21 @@ RedisDown.destroy = function (location, options, callback) {
     if (typeof options === 'function') {
         callback = options;
         options = RedisDown.connectionByLocation[location];
+        delete RedisDown.connectionByLocation[location];
     }
     if (!options) {
         return callback(new Error('No connection registered for "' + location + '"'));
     }
     var sanitizedLocation = sanitizeLocation(location);
     var client = redisLib.createClient(options.port, options.host, options);
-    client.del(location + ':h', location + ':z', function (e) {
+    client.del(sanitizedLocation + ':h', sanitizedLocation + ':z', function (e) {
         client.quit();
         callback(e);
     });
 };
 /**
  * @param doClose: optional parameter, by default true to close the client
+ * JHS: NOT SURE THIS IS BRING USED
  */
 RedisDown.prototype.destroy = function (doClose, callback) {
     if (!callback && typeof doClose === 'function') {

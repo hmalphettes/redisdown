@@ -7,7 +7,7 @@
 #
 
 if [ ! -e 'node_modules/pouchdb' ]; then
-  npm install 'pouchdb@pouchdb/pouchdb#2415' # until 3.0.0 comes out
+  npm install 'pouchdb@pouchdb/pouchdb'
   npm install pouchdb-server
 fi
 ./node_modules/.bin/pouchdb-server -p 6984 $SERVER_ARGS &
