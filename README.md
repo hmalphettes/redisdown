@@ -4,7 +4,7 @@ Redis backend for [LevelUP](https://github.com/rvagg/node-levelup)
 
 Requirements:
 * redis-2.8 or more recent.
-* node-0.10, node-0.11, iojs-1.0.1
+* node-12.x
 
 Uses a sorted-set to order the keys and a hash to store the values.
 
@@ -14,7 +14,7 @@ Fetches the ordered key value pairs during iterations with a single redis lua ca
 except for the ['implicit iterator snapshot'](https://github.com/hmalphettes/redisdown/issues/10).
 
 # Warning: data migration from redisdown-v0.1.9
-redisdown-redisdown-v0.1.10 no longer JSON encode/decode itself. Levelup take care of that.
+redisdown > v0.1.10 no longer JSON encode/decode itself. Levelup take care of that.
 JSON Data written in v0.1.9 is not correctly decoded back to a javascript object in v0.1.10 and above.
 
 This change was introduced to support binary values in redisdown and escaped the fact that it was breaking backward compatibility for the data.
@@ -63,7 +63,7 @@ db.put('name', 'LevelUP', function (err) {
 --------------------------------------------------------
 <a name="ctor"></a>
 ### redisdown(location)
-<code>redisdown()</code> returns a new **RedisDOWN** instance. `location` is a String pointing at the root namespace of the data in redis.
+<code>redisdown(location)</code> returns a new **RedisDOWN** instance. `location` is a String pointing at the root namespace of the data in redis.
 
 * `location+':h'` is the hash where the values are stored.
 * `location+':z'` is the set where the keys are sorted.
@@ -84,7 +84,7 @@ options is a hash that is passed to the redis library to create a redis client:
 -----------------------------------
 <a name="redisdown_destroy"></a>
 ### redisdown.destroy(location, [options, ]callback)
-<code>destroy()</code> is used to completely delete all data in redis related to the location.
+<code>destroy(location)</code> is used to completely delete all data in redis related to the location.
 
 -----------------------------------
 <a name="redisdown_batch_prefixes"></a>

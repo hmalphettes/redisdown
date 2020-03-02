@@ -145,42 +145,42 @@ RedisDown.prototype._del = function (key, opt, cb) {
     this.__exec(this.__appendDelCmd([], key), cb);
 };
 
-RedisDown.prototype._batch = function (array, options, callback) {
-    var cmds = [];
-    for (var i = 0; i < array.length; i++) {
-        var op = array[i];
-        if (op.type === 'put') {
-            this.__appendPutCmd(cmds, op.key, op.value, op.prefix);
-        } else if (op.type === 'del') {
-            this.__appendDelCmd(cmds, op.key, op.prefix);
+RedisDown.prototype._batch = function (operationArray, options, callback) {
+    var commandList = [];
+    for (var i = 0; i < operationArray.length; i++) {
+        var operation = operationArray[i];
+        if (operation.type === 'put') {
+            this.__appendPutCmd(commandList, operation.key, operation.value, operation.prefix);
+        } else if (operation.type === 'del') {
+            this.__appendDelCmd(commandList, operation.key, operation.prefix);
         } else {
-            return callback(new Error('Unknow type of operation ' + JSON.stringify(op)));
+            return callback(new Error('Unknow type of operation ' + JSON.stringify(operation)));
         }
     }
-    this.__exec(cmds, callback);
+    this.__exec(commandList, callback);
 };
 
 RedisDown.prototype.__getPrefix = function (prefix) {
     return prefix || this.location;
 };
 
-RedisDown.prototype.__appendPutCmd = function (cmds, key, value, prefix) {
+RedisDown.prototype.__appendPutCmd = function (commandList, key, value, prefix) {
     var resolvedPrefix = this.__getPrefix(prefix);
     key = cleanKey(key);
-    cmds.push(['hset', resolvedPrefix + ':h', key, value === undefined ? '' : value]);
-    cmds.push(['zadd', resolvedPrefix + ':z', 0, key]);
-    return cmds;
+    commandList.push(['hset', resolvedPrefix + ':h', key, value === undefined ? '' : value]);
+    commandList.push(['zadd', resolvedPrefix + ':z', 0, key]);
+    return commandList;
 };
 
-RedisDown.prototype.__appendDelCmd = function (cmds, key, prefix) {
+RedisDown.prototype.__appendDelCmd = function (commandList, key, prefix) {
     key = cleanKey(key);
     var resolvedPrefix = this.__getPrefix(prefix);
-    cmds.push(['hdel', resolvedPrefix + ':h', key]);
-    cmds.push(['zrem', resolvedPrefix + ':z', key]);
-    return cmds;
+    commandList.push(['hdel', resolvedPrefix + ':h', key]);
+    commandList.push(['zrem', resolvedPrefix + ':z', key]);
+    return commandList;
 };
-RedisDown.prototype.__exec = function (cmds, callback) {
-    this.db.multi(cmds).exec(callback);
+RedisDown.prototype.__exec = function (commandList, callback) {
+    this.db.multi(commandList).exec(callback);
 };
 
 RedisDown.prototype._close = function (callback) {
