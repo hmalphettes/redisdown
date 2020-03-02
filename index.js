@@ -91,12 +91,10 @@ RedisDown.prototype._open = function (options, callback) {
             if (!options.ownClient) {
                 RedisDown.dbs[this.redisId] = {db: this.db, locations: [this.location]};
             }
-            // Also store the options to connect to the database for RedisDown.destroy
         }
-
+        // Also store the options to connect to the database for RedisDown.destroy
         RedisDown.connectionByLocation[uriLocation] = options;
         var self = this;
-
         if (options && options.destroyOnOpen) {
             return this.destroy(false, function () {
                 setImmediate(function () {
