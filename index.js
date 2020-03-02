@@ -50,6 +50,8 @@ RedisDown.connectionByLocation = {};
  * For a client to be reused, it requires the same port, host and options.
  */
 RedisDown.prototype._open = function (options, callback) {
+    var originalOptions = {};
+    Object.assign(originalOptions, options);
     this.highWaterMark = options.highWaterMark || RedisDown.defaultHighWaterMark;
     if (typeof options.hget === 'function') {
         this.db = options.hget;
@@ -70,41 +72,48 @@ RedisDown.prototype._open = function (options, callback) {
         this.quitDbOnClose = true;
     }
     var uriLocation = this.location;
-    this.location = sanitizeLocation(this.location);
-    if (!this.db) {
-        if (options.port || options.host) {
-            // Set return_buffers to true by default
-            if (options['return_buffers'] !== false) {
-                options['return_buffers'] = true;
+    if (typeof RedisDown.connectionByLocation[uriLocation] === 'undefined' && originalOptions.createIfMissing === false) {
+        setImmediate(function () {
+            callback(new Error('Database does not exist.'));
+        });
+    } else {
+        this.location = sanitizeLocation(this.location);
+        if (!this.db) {
+            if (options.port || options.host) {
+                // Set return_buffers to true by default
+                if (options['return_buffers'] !== false) {
+                    options['return_buffers'] = true;
+                }
+                this.db = redisLib.createClient(options.port, options.host, options);
+            } else {
+                this.db = redisLib.createClient({return_buffers: true});
             }
-            this.db = redisLib.createClient(options.port, options.host, options);
-        } else {
-            this.db = redisLib.createClient({return_buffers: true});
+            if (!options.ownClient) {
+                RedisDown.dbs[this.redisId] = {db: this.db, locations: [this.location]};
+            }
+            // Also store the options to connect to the database for RedisDown.destroy
         }
-        if (!options.ownClient) {
-            RedisDown.dbs[this.redisId] = {db: this.db, locations: [this.location]};
-        }
-        // Also store the options to connect to the database for RedisDown.destroy
-    }
-    RedisDown.connectionByLocation[uriLocation] = options;
-    var self = this;
 
-    if (options && options.destroyOnOpen) {
-        return this.destroy(false, function () {
+        RedisDown.connectionByLocation[uriLocation] = options;
+        var self = this;
+
+        if (options && options.destroyOnOpen) {
+            return this.destroy(false, function () {
+                setImmediate(function () {
+                    callback(null, self);
+                });
+            });
+        }
+        scriptsLoader.preload(this.db, function () {
             setImmediate(function () {
                 callback(null, self);
             });
         });
     }
-    scriptsLoader.preload(this.db, function () {
-        setImmediate(function () {
-            callback(null, self);
-        });
-    });
 };
 
 RedisDown.prototype._get = function (key, options, callback) {
-    this.db.hget(this.location + ':h', key.toString(), function (e, v) {
+    this.db.hget(this.location + ':h', cleanKey(key), function (e, v) {
         if (e) {
             return setImmediate(function callNext() {
                 return callback(e);
@@ -159,14 +168,17 @@ RedisDown.prototype.__getPrefix = function (prefix) {
 
 RedisDown.prototype.__appendPutCmd = function (cmds, key, value, prefix) {
     var resolvedPrefix = this.__getPrefix(prefix);
-    cmds.push(['hset', resolvedPrefix + ':h', key.toString(), value === undefined ? '' : value]);
-    cmds.push(['zadd', resolvedPrefix + ':z', 0, key.toString()]);
+    key = cleanKey(key);
+    cmds.push(['hset', resolvedPrefix + ':h', key, value === undefined ? '' : value]);
+    cmds.push(['zadd', resolvedPrefix + ':z', 0, key]);
     return cmds;
 };
+
 RedisDown.prototype.__appendDelCmd = function (cmds, key, prefix) {
+    key = cleanKey(key);
     var resolvedPrefix = this.__getPrefix(prefix);
-    cmds.push(['hdel', resolvedPrefix + ':h', key.toString()]);
-    cmds.push(['zrem', resolvedPrefix + ':z', key.toString()]);
+    cmds.push(['hdel', resolvedPrefix + ':h', key]);
+    cmds.push(['zrem', resolvedPrefix + ':z', key]);
     return cmds;
 };
 RedisDown.prototype.__exec = function (cmds, callback) {
@@ -229,7 +241,6 @@ RedisDown.destroy = function (location, options, callback) {
 };
 /**
  * @param doClose: optional parameter, by default true to close the client
- * JHS: NOT SURE THIS IS BRING USED
  */
 RedisDown.prototype.destroy = function (doClose, callback) {
     if (!callback && typeof doClose === 'function') {
@@ -254,7 +265,8 @@ RedisDown.prototype.destroy = function (doClose, callback) {
 function _makeRedisId(location, options) {
     var redisIdOptions = ['host', 'port',
         'parser', 'return_buffers', 'detect_buffers', 'socket_nodelay', 'no_ready_check',
-        'enable_offline_queue', 'retry_max_delay', 'connect_timeout', 'max_attempts'];
+        'enable_offline_queue', 'retry_max_delay', 'connect_timeout', 'max_attempts'
+    ];
     var redisOptions = {};
     redisIdOptions.forEach(function (opt) {
         if (options[opt] !== undefined && options[opt] !== null) {
@@ -288,6 +300,14 @@ function sanitizeLocation(location) {
         location = location.replace('%7B', '{').replace('%7D', '}');
     }
     return location;
+}
+
+function cleanKey(key) {
+    if (Buffer.isBuffer(key)) {
+        return key;
+    } else {
+        return key.toString();
+    }
 }
 
 RedisDown.reset = function (callback) {

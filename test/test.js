@@ -10,7 +10,6 @@ suite({
     return new leveljs(tempy.directory());
   },
   // Opt-out of unsupported features
-  createIfMissing: false,
   errorIfExists: false,
   snapshots: false,
   seek: false
