@@ -21,10 +21,14 @@
     "redis"
   ],
   "dependencies": {
-    "abstract-leveldown": "*",
-    "redis": "*"
+    "abstract-leveldown": "~6.2.1",
+    "immediate": "~3.2.3",
+    "inherits": "latest",
+    "redis": "~3.0.2",
+    "safe-buffer": "^5.2.0",
+    "tempy": "^0.4.0"
   },
   "devDependencies": {
-    "tape": "*"
+    "tape": "^4.13.0"
   }
 }
